@@ -529,51 +529,6 @@ func TestPeriodForHourGap(t *testing.T) {
 	}
 }
 
-func TestWeekdayString(t *testing.T) {
-	var tests = []struct {
-		desc string
-		day  time.Weekday
-		want string
-	}{{
-		desc: "sunday",
-		day:  time.Sunday,
-		want: "sun",
-	}, {
-		desc: "monday",
-		day:  time.Monday,
-		want: "mon",
-	}, {
-		desc: "tuesday",
-		day:  time.Tuesday,
-		want: "tue",
-	}, {
-		desc: "wednesday",
-		day:  time.Wednesday,
-		want: "wed",
-	}, {
-		desc: "thursday",
-		day:  time.Thursday,
-		want: "thu",
-	}, {
-		desc: "friday",
-		day:  time.Friday,
-		want: "fri",
-	}, {
-		desc: "saturday",
-		day:  time.Saturday,
-		want: "sat",
-	}}
-
-	for _, test := range tests {
-		t.Run(test.desc, func(t *testing.T) {
-			got := app.WeekdayString(test.day)
-			if got != test.want {
-				t.Errorf("WeekdayString(%v) = %q, want %q", test.day, got, test.want)
-			}
-		})
-	}
-}
-
 func TestHandleVote(t *testing.T) {
 	a := newTestApp(t)
 
@@ -617,6 +572,92 @@ func TestHandleVote(t *testing.T) {
 	}
 }
 
+func TestWeekdayForTally(t *testing.T) {
+	periods := testPeriods()
+	periodList := []string{"breakfast", "lunch", "dinner"}
+
+	var tests = []struct {
+		desc           string
+		currentHour    int
+		currentWeekday time.Weekday
+		period         string
+		want           time.Weekday
+	}{{
+		desc:           "requesting current period returns same day",
+		currentHour:    12,
+		currentWeekday: time.Monday,
+		period:         "lunch",
+		want:           time.Monday,
+	}, {
+		desc:           "requesting future period returns same day",
+		currentHour:    12,
+		currentWeekday: time.Monday,
+		period:         "dinner",
+		want:           time.Monday,
+	}, {
+		desc:           "requesting past period returns next day",
+		currentHour:    12,
+		currentWeekday: time.Monday,
+		period:         "breakfast",
+		want:           time.Tuesday,
+	}, {
+		desc:           "requesting past period on saturday returns sunday",
+		currentHour:    20,
+		currentWeekday: time.Saturday,
+		period:         "lunch",
+		want:           time.Sunday,
+	}, {
+		desc:           "requesting past period on saturday returns sunday for breakfast",
+		currentHour:    20,
+		currentWeekday: time.Saturday,
+		period:         "breakfast",
+		want:           time.Sunday,
+	}, {
+		desc:           "dinner on saturday night returns saturday",
+		currentHour:    20,
+		currentWeekday: time.Saturday,
+		period:         "dinner",
+		want:           time.Saturday,
+	}, {
+		desc:           "early morning requesting dinner returns same day",
+		currentHour:    2,
+		currentWeekday: time.Sunday,
+		period:         "dinner",
+		want:           time.Sunday,
+	}, {
+		desc:           "early morning requesting lunch returns same day",
+		currentHour:    2,
+		currentWeekday: time.Sunday,
+		period:         "lunch",
+		want:           time.Sunday,
+	}}
+
+	for _, test := range tests {
+		t.Run(test.desc, func(t *testing.T) {
+			got := app.WeekdayForTally(periods, periodList, test.currentHour, test.currentWeekday, test.period)
+			if got != test.want {
+				t.Errorf("WeekdayForTally(hour=%d, weekday=%v, period=%q) = %v, want %v",
+					test.currentHour, test.currentWeekday, test.period, got, test.want)
+			}
+		})
+	}
+}
+
+func TestWeekdayForTallyWithGaps(t *testing.T) {
+	// Periods with a gap: no period covers hours 12-17.
+	periods := app.Periods{
+		"morning": {6, 12},
+		"evening": {18, 22},
+	}
+	periodList := []string{"morning", "evening"}
+
+	// In a gap, we can't determine the current period, so we return the same day.
+	got := app.WeekdayForTally(periods, periodList, 14, time.Monday, "morning")
+	if got != time.Monday {
+		t.Errorf("WeekdayForTally in gap = %v, want Monday", got)
+	}
+}
+
 func TestHandleVoteShowsCurrentVotes(t *testing.T) {
 	a := newTestApp(t)
 	a.UpdateVotes("alice", map[string]string{
@@ -637,8 +678,10 @@ func TestHandleVoteShowsCurrentVotes(t *testing.T) {
 func TestHandleTallyGet(t *testing.T) {
 	a := newTestApp(t)
 
-	now := time.Now().In(time.UTC)
-	weekday := app.WeekdayFullNames[now.Weekday()]
+	// Fix time to Monday at 12pm (lunch period).
+	a.SetNowFunc(func() time.Time {
+		return time.Date(2026, 2, 9, 12, 0, 0, 0, time.UTC)
+	})
 
 	var tests = []struct {
 		desc       string
@@ -647,11 +690,23 @@ func TestHandleTallyGet(t *testing.T) {
 		wantStatus int
 		wantBody   []string
 	}{{
-		desc:       "valid request",
+		desc:       "current period shows today",
 		token:      "tokenA",
 		period:     "lunch",
 		wantStatus: http.StatusOK,
-		wantBody:   []string{"Anything", "for lunch on", weekday, "Downtown", "Uptown"},
+		wantBody:   []string{"Anything", "for lunch on", "Monday", "Downtown", "Uptown"},
+	}, {
+		desc:       "past period shows next day",
+		token:      "tokenA",
+		period:     "breakfast",
+		wantStatus: http.StatusOK,
+		wantBody:   []string{"Anything", "for breakfast on", "Tuesday"},
+	}, {
+		desc:       "future period shows today",
+		token:      "tokenA",
+		period:     "dinner",
+		wantStatus: http.StatusOK,
+		wantBody:   []string{"Anything", "for dinner on", "Monday"},
 	}, {
 		desc:       "invalid token",
 		token:      "bad",
@@ -691,6 +746,11 @@ func TestHandleTallyGet(t *testing.T) {
 
 func TestHandleTallyPost(t *testing.T) {
 	a := newTestApp(t)
+
+	// Fix time to Monday at 12pm (lunch period).
+	a.SetNowFunc(func() time.Time {
+		return time.Date(2026, 2, 9, 12, 0, 0, 0, time.UTC)
+	})
 
 	form := url.Values{}
 	form.Set("Pizza Place", "strong-yes")

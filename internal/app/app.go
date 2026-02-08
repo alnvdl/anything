@@ -104,6 +104,7 @@ type App struct {
 	timezone   *time.Location
 	periods    Periods
 	periodList []string
+	nowFunc    func() time.Time
 
 	mu    sync.RWMutex
 	votes map[string]map[string]string
@@ -123,6 +124,7 @@ func New(params Params) (*App, error) {
 		timezone:   params.Timezone,
 		periods:    params.Periods,
 		votes:      make(map[string]map[string]string),
+		nowFunc:    time.Now,
 	}
 
 	for _, e := range a.entries {
@@ -360,6 +362,25 @@ func (a *App) tallyData(weekday time.Weekday, period string) []groupData {
 	return result
 }
 
+// weekdayForTally returns the appropriate weekday for displaying a tally.
+// If the requested period has already passed for the current day, it returns
+// the next day's weekday.
+func weekdayForTally(periods Periods, periodList []string, currentHour int, currentWeekday time.Weekday, period string) time.Weekday {
+	currentPeriod := periodForHour(periods, currentHour)
+	if currentPeriod == period {
+		return currentWeekday
+	}
+
+	currentIdx := slices.Index(periodList, currentPeriod)
+	requestedIdx := slices.Index(periodList, period)
+
+	if currentIdx >= 0 && requestedIdx >= 0 && requestedIdx < currentIdx {
+		return (currentWeekday + 1) % 7
+	}
+
+	return currentWeekday
+}
+
 // periodForHour returns the period name for a given hour.
 func periodForHour(periods Periods, hour int) string {
 	for name, bounds := range periods {
@@ -376,11 +397,6 @@ func periodForHour(periods Periods, hour int) string {
 		}
 	}
 	return ""
-}
-
-// weekdayString returns the short weekday name.
-func weekdayString(wd time.Weekday) string {
-	return weekdayShortNames[wd]
 }
 
 // authenticate extracts the token from the request and resolves it to a person.
@@ -429,15 +445,16 @@ func (a *App) handleTallyGet(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	now := time.Now().In(a.timezone)
-	groups := a.tallyData(now.Weekday(), period)
+	now := a.nowFunc().In(a.timezone)
+	wd := weekdayForTally(a.periods, a.periodList, now.Hour(), now.Weekday(), period)
+	groups := a.tallyData(wd, period)
 
 	data := pageData{
 		Title:   "Anything",
 		Token:   token,
 		Person:  person,
 		Period:  period,
-		Weekday: weekdayFullNames[now.Weekday()],
+		Weekday: weekdayFullNames[wd],
 		Periods: a.periodList,
 		Groups:  groups,
 	}
@@ -471,7 +488,7 @@ func (a *App) handleTallyPost(w http.ResponseWriter, r *http.Request) {
 
 	a.updateVotes(person, votes)
 
-	now := time.Now().In(a.timezone)
+	now := a.nowFunc().In(a.timezone)
 	period := periodForHour(a.periods, now.Hour())
 
 	if period == "" {

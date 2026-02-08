@@ -33,13 +33,18 @@ func PeriodForHour(periods Periods, hour int) string {
 	return periodForHour(periods, hour)
 }
 
-// WeekdayString exposes weekdayString for testing.
-func WeekdayString(wd time.Weekday) string {
-	return weekdayString(wd)
-}
-
 var WeekdayFullNames = weekdayFullNames
 var WeekdayShortNames = weekdayShortNames
+
+// SetNowFunc overrides the time function used by the App for testing.
+func (a *App) SetNowFunc(f func() time.Time) {
+	a.nowFunc = f
+}
+
+// WeekdayForTally exposes weekdayForTally for testing.
+func WeekdayForTally(periods Periods, periodList []string, currentHour int, currentWeekday time.Weekday, period string) time.Weekday {
+	return weekdayForTally(periods, periodList, currentHour, currentWeekday, period)
+}
 
 // Votes returns the current votes map for testing.
 func (a *App) Votes() map[string]map[string]string {
