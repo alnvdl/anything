@@ -1,0 +1,115 @@
+/* Radio button styling as buttons */
+input[type="radio"] {
+    display: none;
+}
+
+input[type="radio"] + label {
+    background: var(--lwa-button-color);
+    color: color-mix(in hsl, var(--lwa-font-color), white 50%);
+    border: 2px solid color-mix(in hsl, var(--lwa-button-color), black 20%);
+    padding: 8px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    margin: 0;
+    font-size: var(--lwa-font-size);
+    font-weight: var(--lwa-font-weight);
+    transition: background-color var(--lwa-transition);
+    user-select: none;
+}
+
+input[type="radio"] + label:hover {
+    background-color: color-mix(in hsl, var(--lwa-button-color), black 8%);
+    border-width: 2px;
+}
+
+input[type="radio"]:checked + label {
+    box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.2);
+    font-weight: 700;
+}
+
+/* Apply colors only when checked */
+input[type="radio"][value="strong-no"]:checked + label {
+    background: color-mix(in hsl, var(--lwa-red), black 35%);
+    color: hsl(from var(--lwa-red) h calc(s + 70) calc(l - 70));
+    border: 2px solid hsl(from var(--lwa-red) h calc(s + 70) calc(l - 70));
+}
+
+input[type="radio"][value="no"]:checked + label {
+    background: var(--lwa-red);
+    color: hsl(from var(--lwa-red) h calc(s + 70) calc(l - 70));
+    border: 2px solid hsl(from var(--lwa-red) h calc(s + 70) calc(l - 70));
+}
+
+input[type="radio"][value="yes"]:checked + label {
+    background: var(--lwa-green);
+    color: hsl(from var(--lwa-green) h calc(s + 70) calc(l - 70));
+    border: 2px solid hsl(from var(--lwa-green) h calc(s + 70) calc(l - 70));
+}
+
+input[type="radio"][value="strong-yes"]:checked + label {
+    background: color-mix(in hsl, var(--lwa-green), black 35%);
+    color: hsl(from var(--lwa-green) h calc(s + 70) calc(l - 70));
+    border: 2px solid hsl(from var(--lwa-green) h calc(s + 70) calc(l - 70));
+}
+
+/* Radio group styling to appear as button group */
+fieldset.radio-group {
+    display: inline-flex;
+    border: none;
+    padding: 0;
+    margin: 0;
+    box-shadow: 1px 1px 1px rgba(0, 0, 0, 0.2);
+    gap: 2px;
+}
+
+fieldset.radio-group legend {
+    padding: 0;
+    margin: 0;
+}
+
+fieldset.radio-group input[type="radio"] + label {
+    margin: 0;
+}
+
+img {
+    filter: opacity(40%);
+}
+
+.entry-list {
+    display: grid;
+    gap: 16px;
+}
+
+.entry {
+    display: inline-flex;
+    width: 100%;
+    align-items: center;
+    padding-left: 16px;
+}
+
+.entry > div {
+    flex-grow: 1;
+}
+
+div.location {
+    font-size: 1.1rem;
+    font-weight: 700;
+    margin-top: 24px;
+}
+
+button[type="submit"] {
+    font-weight: 700;
+    font-size: calc(var(--lwa-font-size) * 1.1);
+    display: block;
+    width: 80%;
+    max-width: 320px;
+    margin: 32px auto 0px auto;
+}
+
+h1 > small {
+    font-size: 0.6em;
+    color: var(--lwa-font-color);
+    font-weight: normal;
+}

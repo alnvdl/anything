@@ -1,0 +1,192 @@
+@import url("./bootstrap-reboot.css");
+
+:root {
+    --lwa-font-size: 0.85rem;
+    --lwa-font-size-mobile: 0.75rem;
+    --lwa-font-weight: 500;
+
+    --lwa-transition: 300ms;
+
+    --lwa-background-body: #f5f5f5;
+    --lwa-background-main: #fafafa;
+    --lwa-font-color: #333;
+    --lwa-button-color: #eee;
+    --lwa-border-color: #ccc;
+    --lwa-red: #F5D5D5;
+    --lwa-blue: #C5D5F5;
+    --lwa-green: #E5F5D5;
+}
+
+/* main.lightwebapp container */
+body:has(> main.lightwebapp) {
+    background: var(--lwa-background-body);
+    min-height: 100vh;
+    padding: 16px;
+    display: flex;
+    align-items: start;
+    justify-content: center;
+}
+
+main.lightwebapp {
+    background: var(--lwa-background-main);
+    padding: 32px;
+    width: 100%;
+    border: 1px solid var(--lwa-border-color);
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+    max-width: 720px;
+}
+
+/* Input and button styling */
+input,
+textarea,
+button,
+select {
+    padding: 0.5rem;
+    border: 1px solid var(--lwa-border-color);
+    font-size: var(--lwa-font-size);
+    font-weight: var(--lwa-font-weight);
+    font-family: inherit;
+    transition: all 0.2s ease;
+    color: var(--lwa-font-color);
+
+    &:focus {
+        outline: none;
+        border-color: color-mix(in hsl, var(--lwa-font-color), white 50%);
+        box-shadow: 0 0 0 2px rgba(100, 100, 100, 0.2);
+    }
+}
+
+
+button,
+select,
+input[type="submit"],
+input[type="button"],
+input[type="reset"],
+input[type="color"] {
+    background: var(--lwa-button-color);
+    color: var(--lwa-font-color);
+    border: 1px solid color-mix(in hsl, var(--lwa-button-color), black 20%);
+    box-shadow: 1px 1px 1px rgba(0, 0, 0, 0.2);
+
+    align-items: center;
+    cursor: pointer;
+    display: inline-flex;
+    font-family: inherit;
+    font-size: var(--lwa-font-size);
+    font-weight: var(--lwa-font-weight);
+    gap: 0.5rem;
+    justify-content: center;
+    padding: 0.5rem;
+    transition: background-color var(--lwa-transition);
+
+    &:hover {
+        background-color: color-mix(in hsl, var(--lwa-button-color), black 8%);
+    }
+
+    &:disabled {
+        opacity: 0.5;
+        cursor: not-allowed;
+    }
+
+    &.red {
+        background: var(--lwa-red);
+        color: color-mix(in hsl, var(--lwa-red), black 65%);
+        border: 1px solid color-mix(in hsl, var(--lwa-red), black 20%);
+
+        &:hover {
+            background-color: color-mix(in hsl, var(--lwa-red), black 8%);
+        }
+    }
+
+    &.green {
+        background: var(--lwa-green);
+        color: color-mix(in hsl, var(--lwa-green), black 65%);
+        border: 1px solid color-mix(in hsl, var(--lwa-green), black 20%);
+
+        &:hover {
+            background-color: color-mix(in hsl, var(--lwa-green), black 8%);
+        }
+    }
+
+    &.blue {
+        background: var(--lwa-blue);
+        color: color-mix(in hsl, var(--lwa-blue), black 65%);
+        border: 1px solid color-mix(in hsl, var(--lwa-blue), black 20%);
+
+        &:hover {
+            background-color: color-mix(in hsl, var(--lwa-blue), black 8%);
+        }
+    }
+}
+
+/* Button groups */
+div:not(:has(> :not(button)))>button {
+    box-shadow: none;
+    border-left: 0;
+}
+
+div:not(:has(> :not(button)))>button:first-of-type {
+    border: 1px solid color-mix(in hsl, var(--lwa-button-color), black 20%);
+}
+
+div:has(> button):not(:has(> :not(button))) {
+    display: inline-flex;
+    vertical-align: middle;
+    box-shadow: 1px 1px 1px rgba(0, 0, 0, 0.2);
+}
+
+/* Customizations on top of Reboot */
+a {
+    color: var(--lwa-font-color);
+    font-weight: 700;
+}
+
+code {
+    color: color-mix(in hsl, var(--lwa-font-color), white 30%);
+}
+
+kbd {
+    background-color: var(--lwa-button-color);
+    border: 1px solid var(--lwa-border-color);
+    box-shadow: 0 1px 1px rgb(0 0 0 / 0.2), 0 2px 0 0 rgb(255 255 255 / 0.7) inset;
+    color: var(--lwa-font-color);
+    display: inline-block;
+    font-size: 0.7rem;
+    font-weight: 700;
+    line-height: 1;
+    margin: 3px;
+    white-space: nowrap;
+}
+
+/* Adaptations for mobile */
+@media only screen and (any-hover: none) and (pointer: coarse),
+only screen and (max-width: 1280px) {
+
+    body:has(> main.lightwebapp) {
+        padding: 0;
+        background: var(--lwa-background-main);
+        align-items: start;
+    }
+
+    main.lightwebapp {
+        padding: 16px;
+        border: none;
+        width: 100%;
+        min-height: unset;
+        box-shadow: none;
+        border: none;
+    }
+
+    input,
+    textarea,
+    button,
+    select,
+    button,
+    select,
+    input[type="submit"],
+    input[type="button"],
+    input[type="reset"],
+    input[type="color"] {
+        font-size: var(--lwa-font-size-mobile);
+    }
+}

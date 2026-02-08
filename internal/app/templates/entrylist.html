@@ -1,0 +1,10 @@
+{{define "entrylist"}}
+<div class="entry-list">
+    {{range .Groups}}
+    <div class="location">{{.Name}}</div>
+    {{range .Entries}}
+    {{template "entry" .}}
+    {{end}}
+    {{end}}
+</div>
+{{end}}

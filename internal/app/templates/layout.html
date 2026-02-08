@@ -1,0 +1,20 @@
+{{define "layout"}}<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{.Title}}{{if .Period}} (for {{.Period}} on {{.Weekday}}){{end}}</title>
+    <link rel="stylesheet" href="/static/lightwebapp.css">
+    <link rel="stylesheet" href="/static/anything.css">
+</head>
+
+<body>
+    <main class="lightwebapp">
+        {{template "page" .}}
+    </main>
+    {{template "scripts" .}}
+</body>
+
+</html>
+{{end}}

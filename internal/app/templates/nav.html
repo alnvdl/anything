@@ -1,0 +1,6 @@
+{{define "nav"}}
+<h1>{{.Title}}<small>{{if .Period}} (for {{.Period}} on {{.Weekday}}){{else}} ({{.Person}}'s votes)</small>{{end}}</h1>
+<a href="/?token={{.Token}}">Vote</a> | Tally: {{range $i, $p := .Periods}}{{if $i}} | {{end}}<a
+    href="/votes?period={{$p}}&amp;token={{$.Token}}">{{title $p}}</a>{{end}}
+<hr />
+{{end}}

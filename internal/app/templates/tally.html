@@ -1,0 +1,13 @@
+{{define "page"}}
+{{template "nav" .}}
+{{template "entrylist" .}}
+{{end}}
+
+{{define "entry"}}
+    <div class="entry"{{if .Closed}} style="opacity: 0.5"{{end}}>
+        <div>{{.Name}}</div>
+        <span>{{.Score}} · {{.CostDisplay}}</span>
+    </div>
+{{end}}
+
+{{define "scripts"}}{{end}}
