@@ -206,13 +206,9 @@ func New(params Params) (*App, error) {
 	a.mux.HandleFunc("GET /{$}", a.handleVote)
 	a.mux.HandleFunc("GET /votes", a.handleTallyGet)
 	a.mux.HandleFunc("POST /votes", a.handleTallyPost)
+	a.mux.HandleFunc("GET /status", a.handleStatus)
 
 	return a, nil
-}
-
-// ServeHTTP implements http.Handler.
-func (a *App) ServeHTTP(w http.ResponseWriter, r *http.Request) {
-	a.mux.ServeHTTP(w, r)
 }
 
 // personForToken returns the person name for a given token.
@@ -432,17 +428,21 @@ func (a *App) tallyData(weekday time.Weekday, period string) []groupData {
 	return result
 }
 
-// weekdayForTally returns the appropriate weekday for displaying a tally.
+// periodTallyWeekday returns the appropriate weekday for displaying a tally.
 // If the requested period has already passed for the current day, it returns
 // the next day's weekday.
-func weekdayForTally(periods Periods, periodList []string, currentHour int, currentWeekday time.Weekday, period string) time.Weekday {
-	currentPeriod := periodForHour(periods, currentHour)
+func (a *App) periodTallyWeekday(period string) time.Weekday {
+	now := a.nowFunc().In(a.timezone)
+	currentHour := now.Hour()
+	currentWeekday := now.Weekday()
+
+	currentPeriod := periodForHour(a.periods, currentHour)
 	if currentPeriod == period {
 		return currentWeekday
 	}
 
-	currentIdx := slices.Index(periodList, currentPeriod)
-	requestedIdx := slices.Index(periodList, period)
+	currentIdx := slices.Index(a.periodList, currentPeriod)
+	requestedIdx := slices.Index(a.periodList, period)
 
 	if currentIdx >= 0 && requestedIdx >= 0 && requestedIdx < currentIdx {
 		return (currentWeekday + 1) % 7
@@ -467,119 +467,4 @@ func periodForHour(periods Periods, hour int) string {
 		}
 	}
 	return ""
-}
-
-// authenticate extracts the token from the request and resolves it to a person.
-func (a *App) authenticate(r *http.Request) (string, bool) {
-	token := r.URL.Query().Get("token")
-	return a.personForToken(token)
-}
-
-// handleVote serves the voting page.
-func (a *App) handleVote(w http.ResponseWriter, r *http.Request) {
-	person, ok := a.authenticate(r)
-	if !ok {
-		http.Error(w, "Forbidden", http.StatusForbidden)
-		return
-	}
-
-	token := r.URL.Query().Get("token")
-	groups := a.votePageData(person)
-
-	data := pageData{
-		Title:   "Anything",
-		Token:   token,
-		Person:  person,
-		Periods: a.periodList,
-		Groups:  groups,
-	}
-
-	w.Header().Set("Content-Type", "text/html; charset=utf-8")
-	if err := a.voteTmpl.ExecuteTemplate(w, "layout", data); err != nil {
-		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
-	}
-}
-
-// handleTallyGet serves the tally page for a given period.
-func (a *App) handleTallyGet(w http.ResponseWriter, r *http.Request) {
-	person, ok := a.authenticate(r)
-	if !ok {
-		http.Error(w, "Forbidden", http.StatusForbidden)
-		return
-	}
-
-	token := r.URL.Query().Get("token")
-	period := r.URL.Query().Get("period")
-	if _, ok := a.periods[period]; !ok {
-		http.Error(w, "Bad Request: invalid period", http.StatusBadRequest)
-		return
-	}
-
-	now := a.nowFunc().In(a.timezone)
-	wd := weekdayForTally(a.periods, a.periodList, now.Hour(), now.Weekday(), period)
-	groups := a.tallyData(wd, period)
-
-	data := pageData{
-		Title:   "Anything",
-		Token:   token,
-		Person:  person,
-		Period:  period,
-		Weekday: weekdayFullNames[wd],
-		Periods: a.periodList,
-		Groups:  groups,
-	}
-
-	w.Header().Set("Content-Type", "text/html; charset=utf-8")
-	if err := a.tallyTmpl.ExecuteTemplate(w, "layout", data); err != nil {
-		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
-	}
-}
-
-// handleTallyPost handles vote submission and shows the tally.
-func (a *App) handleTallyPost(w http.ResponseWriter, r *http.Request) {
-	person, ok := a.authenticate(r)
-	if !ok {
-		http.Error(w, "Forbidden", http.StatusForbidden)
-		return
-	}
-
-	token := r.URL.Query().Get("token")
-
-	if err := r.ParseForm(); err != nil {
-		http.Error(w, "Bad Request", http.StatusBadRequest)
-		return
-	}
-
-	// Extract votes from form data.
-	votes := make(map[string]string)
-	for name := range r.PostForm {
-		votes[name] = r.PostForm.Get(name)
-	}
-
-	a.updateVotes(person, votes)
-
-	now := a.nowFunc().In(a.timezone)
-	period := periodForHour(a.periods, now.Hour())
-
-	if period == "" {
-		http.Error(w, "No active period", http.StatusBadRequest)
-		return
-	}
-
-	groups := a.tallyData(now.Weekday(), period)
-
-	data := pageData{
-		Title:   "Anything",
-		Token:   token,
-		Person:  person,
-		Period:  period,
-		Weekday: weekdayFullNames[now.Weekday()],
-		Periods: a.periodList,
-		Groups:  groups,
-	}
-
-	w.Header().Set("Content-Type", "text/html; charset=utf-8")
-	if err := a.tallyTmpl.ExecuteTemplate(w, "layout", data); err != nil {
-		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
-	}
 }

@@ -41,9 +41,9 @@ func (a *App) SetNowFunc(f func() time.Time) {
 	a.nowFunc = f
 }
 
-// WeekdayForTally exposes weekdayForTally for testing.
-func WeekdayForTally(periods Periods, periodList []string, currentHour int, currentWeekday time.Weekday, period string) time.Weekday {
-	return weekdayForTally(periods, periodList, currentHour, currentWeekday, period)
+// PeriodTallyWeekday exposes periodTallyWeekday for testing.
+func (a *App) PeriodTallyWeekday(period string) time.Weekday {
+	return a.periodTallyWeekday(period)
 }
 
 // Votes returns the current votes map for testing.

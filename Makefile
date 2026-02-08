@@ -33,7 +33,7 @@ dev:
 	PERIODS=$(PERIODS) \
 	PEOPLE=$(PEOPLE) \
 	ENTRIES=$(ENTRIES) \
-	go run ./cmd/anythingsrv
+	go run -buildvcs=true ./cmd/anythingsrv
 
 test:
 	go test ./... -count=1 -cover -coverprofile /tmp/cover.out
