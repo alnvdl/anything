@@ -226,6 +226,11 @@ func TestStaticFileServing(t *testing.T) {
 			if !strings.Contains(body, test.wantBody) {
 				t.Errorf("body does not contain %q", test.wantBody)
 			}
+
+			cc := w.Header().Get("Cache-Control")
+			if cc != "max-age=604800, public" {
+				t.Errorf("Cache-Control = %q, want %q", cc, "max-age=604800, public")
+			}
 		})
 	}
 }

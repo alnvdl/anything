@@ -202,7 +202,11 @@ func New(params Params) (*App, error) {
 	a.mux = http.NewServeMux()
 
 	staticContent, _ := fs.Sub(staticFS, "static")
-	a.mux.Handle("GET /static/", http.StripPrefix("/static/", http.FileServerFS(staticContent)))
+	staticHandler := http.StripPrefix("/static/", http.FileServerFS(staticContent))
+	a.mux.HandleFunc("GET /static/", func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Cache-Control", "max-age=604800, public")
+		staticHandler.ServeHTTP(w, r)
+	})
 	a.mux.HandleFunc("GET /{$}", a.handleVote)
 	a.mux.HandleFunc("GET /votes", a.handleTallyGet)
 	a.mux.HandleFunc("POST /votes", a.handleTallyPost)
