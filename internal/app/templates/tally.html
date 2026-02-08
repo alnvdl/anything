@@ -6,7 +6,7 @@
 {{define "entry"}}
 <div class="entry" {{if .Closed}} style="opacity: 0.5" {{end}}>
     <div>{{.Name}}</div>
-    <span>{{if .StrongNo}}<span class="svg-strong-no"></span> · {{end}}{{.Score}} · {{.CostDisplay}}</span>
+    <span class="entry-tally">{{if .StrongNo}}<span class="svg-strong-no"></span> · {{end}}{{.Score}} · {{.CostDisplay}}</span>
 </div>
 {{end}}
 

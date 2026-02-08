@@ -89,6 +89,16 @@ img {
     padding-left: 16px;
 }
 
+.entry-tally {
+    display: inline-flex;
+    align-items: center;
+}
+
+.entry-tally>span {
+    display: inline-flex;
+    padding: 0px 4px;
+}
+
 .entry>div {
     flex-grow: 1;
 }
