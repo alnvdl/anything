@@ -1,6 +1,7 @@
 package app_test
 
 import (
+	"bytes"
 	"net/http"
 	"net/http/httptest"
 	"net/url"
@@ -833,5 +834,130 @@ func TestStaticFileServing(t *testing.T) {
 				t.Errorf("body does not contain %q", test.wantBody)
 			}
 		})
+	}
+}
+
+func TestSave(t *testing.T) {
+	a := newTestApp(t)
+	a.UpdateVotes("alice", map[string]string{
+		"Pizza Place":  "strong-yes",
+		"Burger Joint": "no",
+	})
+	a.UpdateVotes("bob", map[string]string{
+		"Sushi Bar": "yes",
+	})
+
+	var buf bytes.Buffer
+	if err := a.Save(&buf); err != nil {
+		t.Fatalf("Save() error: %v", err)
+	}
+
+	saved := buf.String()
+	for _, want := range []string{"alice", "bob", "Pizza Place", "strong-yes", "Burger Joint", "no", "Sushi Bar", "yes"} {
+		if !strings.Contains(saved, want) {
+			t.Errorf("saved data does not contain %q", want)
+		}
+	}
+}
+
+func TestLoad(t *testing.T) {
+	var tests = []struct {
+		desc      string
+		input     string
+		wantVotes map[string]map[string]string
+		wantErr   bool
+	}{{
+		desc:  "valid data",
+		input: `{"alice":{"Pizza Place":"strong-yes","Burger Joint":"no"},"bob":{"Sushi Bar":"yes"}}`,
+		wantVotes: map[string]map[string]string{
+			"alice": {"Pizza Place": "strong-yes", "Burger Joint": "no"},
+			"bob":   {"Sushi Bar": "yes"},
+		},
+	}, {
+		desc:      "empty file",
+		input:     "",
+		wantVotes: map[string]map[string]string{},
+	}, {
+		desc:      "empty JSON object",
+		input:     "{}",
+		wantVotes: map[string]map[string]string{},
+	}, {
+		desc:    "invalid JSON",
+		input:   "{not valid json",
+		wantErr: true,
+	}}
+
+	for _, test := range tests {
+		t.Run(test.desc, func(t *testing.T) {
+			a := newTestApp(t)
+
+			err := a.Load(strings.NewReader(test.input))
+			if (err != nil) != test.wantErr {
+				t.Fatalf("Load() err = %v, wantErr = %v", err, test.wantErr)
+			}
+			if test.wantErr {
+				return
+			}
+
+			votes := a.Votes()
+			if len(votes) != len(test.wantVotes) {
+				t.Fatalf("Load() resulted in %d people, want %d", len(votes), len(test.wantVotes))
+			}
+			for person, wantPersonVotes := range test.wantVotes {
+				gotPersonVotes := votes[person]
+				if len(gotPersonVotes) != len(wantPersonVotes) {
+					t.Errorf("person %q has %d votes, want %d", person, len(gotPersonVotes), len(wantPersonVotes))
+					continue
+				}
+				for entry, wantVote := range wantPersonVotes {
+					if gotPersonVotes[entry] != wantVote {
+						t.Errorf("person %q entry %q = %q, want %q", person, entry, gotPersonVotes[entry], wantVote)
+					}
+				}
+			}
+		})
+	}
+}
+
+func TestSaveLoadRoundTrip(t *testing.T) {
+	a := newTestApp(t)
+	a.UpdateVotes("alice", map[string]string{
+		"Pizza Place":  "strong-yes",
+		"Burger Joint": "no",
+	})
+	a.UpdateVotes("bob", map[string]string{
+		"Sushi Bar":  "yes",
+		"Taco Stand": "strong-no",
+	})
+
+	// Save.
+	var buf bytes.Buffer
+	if err := a.Save(&buf); err != nil {
+		t.Fatalf("Save() error: %v", err)
+	}
+
+	// Load into a fresh app.
+	a2 := newTestApp(t)
+	if err := a2.Load(&buf); err != nil {
+		t.Fatalf("Load() error: %v", err)
+	}
+
+	// Compare votes.
+	origVotes := a.Votes()
+	loadedVotes := a2.Votes()
+	if len(loadedVotes) != len(origVotes) {
+		t.Fatalf("round-trip: %d people, want %d", len(loadedVotes), len(origVotes))
+	}
+	for person, origPersonVotes := range origVotes {
+		loadedPersonVotes := loadedVotes[person]
+		if len(loadedPersonVotes) != len(origPersonVotes) {
+			t.Errorf("person %q: %d votes, want %d", person, len(loadedPersonVotes), len(origPersonVotes))
+			continue
+		}
+		for entry, origVote := range origPersonVotes {
+			if loadedPersonVotes[entry] != origVote {
+				t.Errorf("person %q entry %q = %q, want %q", person, entry, loadedPersonVotes[entry], origVote)
+			}
+		}
 	}
 }

@@ -2,6 +2,7 @@ package main
 
 import (
 	"testing"
+	"time"
 )
 
 func TestPort(t *testing.T) {
@@ -250,6 +251,62 @@ func TestHoursForPeriod(t *testing.T) {
 				if h != test.want[i] {
 					t.Errorf("hoursForPeriod(%d, %d)[%d] = %d, want %d", test.start, test.end, i, h, test.want[i])
 				}
+			}
+		})
+	}
+}
+
+func TestDBPath(t *testing.T) {
+	var tests = []struct {
+		desc string
+		env  string
+		want string
+	}{{
+		desc: "default when not set",
+		env:  "",
+		want: "db.json",
+	}, {
+		desc: "custom path",
+		env:  "/tmp/mydata.json",
+		want: "/tmp/mydata.json",
+	}}
+
+	for _, test := range tests {
+		t.Run(test.desc, func(t *testing.T) {
+			t.Setenv("DB_PATH", test.env)
+			got := DBPath()
+			if got != test.want {
+				t.Errorf("DBPath() = %q, want %q", got, test.want)
+			}
+		})
+	}
+}
+
+func TestPersistInterval(t *testing.T) {
+	var tests = []struct {
+		desc string
+		env  string
+		want time.Duration
+	}{{
+		desc: "default when not set",
+		env:  "",
+		want: 15 * time.Minute,
+	}, {
+		desc: "custom interval",
+		env:  "30s",
+		want: 30 * time.Second,
+	}, {
+		desc: "invalid falls back to default",
+		env:  "notaduration",
+		want: 15 * time.Minute,
+	}}
+
+	for _, test := range tests {
+		t.Run(test.desc, func(t *testing.T) {
+			t.Setenv("PERSIST_INTERVAL", test.env)
+			got := PersistInterval()
+			if got != test.want {
+				t.Errorf("PersistInterval() = %v, want %v", got, test.want)
 			}
 		})
 	}

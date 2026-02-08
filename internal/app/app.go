@@ -4,14 +4,19 @@ package app
 import (
 	"cmp"
 	"embed"
+	"encoding/json"
+	"errors"
 	"fmt"
 	"html/template"
+	"io"
 	"io/fs"
 	"net/http"
 	"slices"
 	"strings"
 	"sync"
 	"time"
+
+	"github.com/alnvdl/autosave"
 )
 
 //go:embed templates/*.html
@@ -67,6 +72,12 @@ type Params struct {
 	People   map[string]string
 	Timezone *time.Location
 	Periods  Periods
+
+	// AutoSaveParams is the configuration for auto-save. If FilePath is
+	// empty, auto-save will be disabled and votes will only be kept in
+	// memory. The LoaderSaver field will be set to the created App, so any
+	// value set by the caller will be ignored.
+	AutoSaveParams autosave.Params
 }
 
 // pageData holds template data for rendering pages.
@@ -108,6 +119,8 @@ type App struct {
 
 	mu    sync.RWMutex
 	votes map[string]map[string]string
+
+	autoSaver *autosave.AutoSaver
 
 	mux       *http.ServeMux
 	voteTmpl  *template.Template
@@ -174,6 +187,17 @@ func New(params Params) (*App, error) {
 		return nil, fmt.Errorf("parsing tally templates: %w", err)
 	}
 
+	// Initialize auto-save if configured.
+	if params.AutoSaveParams.FilePath != "" {
+		params.AutoSaveParams.LoaderSaver = a
+
+		var asErr error
+		a.autoSaver, asErr = autosave.New(params.AutoSaveParams)
+		if asErr != nil {
+			return nil, fmt.Errorf("cannot initialize auto-saver: %v", asErr)
+		}
+	}
+
 	// Set up routes.
 	a.mux = http.NewServeMux()
 
@@ -197,8 +221,54 @@ func (a *App) personForToken(token string) (string, bool) {
 	return person, ok
 }
 
+// delayAutoSave calls Delay on the autoSaver if it is not nil.
+func (a *App) delayAutoSave() {
+	if a.autoSaver != nil {
+		a.autoSaver.Delay()
+	}
+}
+
+// Load deserializes votes from the given reader.
+func (a *App) Load(r io.Reader) error {
+	a.mu.Lock()
+	defer a.mu.Unlock()
+
+	dec := json.NewDecoder(r)
+	var data map[string]map[string]string
+	err := dec.Decode(&data)
+	if errors.Is(err, io.EOF) || errors.Is(err, io.ErrUnexpectedEOF) {
+		// Ignoring a corrupted or empty file is intentional: we prefer to
+		// lose all votes than prevent the application from starting.
+		return nil
+	} else if err != nil {
+		return fmt.Errorf("cannot deserialize votes: %w", err)
+	}
+	a.votes = data
+	return nil
+}
+
+// Save serializes votes to the given writer.
+func (a *App) Save(w io.Writer) error {
+	a.mu.RLock()
+	defer a.mu.RUnlock()
+
+	enc := json.NewEncoder(w)
+	if err := enc.Encode(a.votes); err != nil {
+		return fmt.Errorf("cannot serialize votes: %w", err)
+	}
+	return nil
+}
+
+// Close stops the auto-save mechanism and waits for it to finish.
+func (a *App) Close() {
+	if a.autoSaver != nil {
+		a.autoSaver.Close()
+	}
+}
+
 // updateVotes saves votes for a person, cleaning invalid entries and vote values.
 func (a *App) updateVotes(person string, votes map[string]string) {
+	defer a.delayAutoSave()
 	a.mu.Lock()
 	defer a.mu.Unlock()
 

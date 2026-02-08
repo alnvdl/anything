@@ -10,6 +10,31 @@ import (
 	"github.com/alnvdl/anything/internal/app"
 )
 
+const (
+	defaultDBPath          = "db.json"
+	defaultPersistInterval = 15 * time.Minute
+)
+
+// DBPath reads the DB_PATH environment variable. If not set, it defaults to
+// "db.json".
+func DBPath() string {
+	s := os.Getenv("DB_PATH")
+	if s == "" {
+		return defaultDBPath
+	}
+	return s
+}
+
+// PersistInterval reads and validates the PERSIST_INTERVAL environment
+// variable. If not set, it defaults to 15 minutes.
+func PersistInterval() time.Duration {
+	s := os.Getenv("PERSIST_INTERVAL")
+	if d, err := time.ParseDuration(s); err == nil {
+		return d
+	}
+	return defaultPersistInterval
+}
+
 // Port reads and validates the PORT environment variable.
 func Port() (int, error) {
 	s := os.Getenv("PORT")
