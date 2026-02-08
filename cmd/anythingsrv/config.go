@@ -132,6 +132,20 @@ func Periods() (app.Periods, error) {
 	return app.Periods(raw), nil
 }
 
+// GroupOrder reads and validates the GROUP_ORDER environment variable.
+// If not set, it returns nil (no custom ordering).
+func GroupOrder() ([]string, error) {
+	s := os.Getenv("GROUP_ORDER")
+	if s == "" {
+		return nil, nil
+	}
+	var order []string
+	if err := json.Unmarshal([]byte(s), &order); err != nil {
+		return nil, fmt.Errorf("GROUP_ORDER is not valid JSON: %w", err)
+	}
+	return order, nil
+}
+
 // hoursForPeriod returns the list of hours covered by a period [start, end).
 func hoursForPeriod(start, end int) []int {
 	var hours []int

@@ -68,10 +68,11 @@ type Periods map[string][2]int
 
 // Params contains all parameters needed to create an App.
 type Params struct {
-	Entries  []Entry
-	People   map[string]string
-	Timezone *time.Location
-	Periods  Periods
+	Entries    []Entry
+	People     map[string]string
+	Timezone   *time.Location
+	Periods    Periods
+	GroupOrder []string
 
 	// AutoSaveParams is the configuration for auto-save. If FilePath is
 	// empty, auto-save will be disabled and votes will only be kept in
@@ -116,6 +117,7 @@ type App struct {
 	timezone   *time.Location
 	periods    Periods
 	periodList []string
+	groupOrder []string
 	nowFunc    func() time.Time
 
 	mu    sync.RWMutex
@@ -138,6 +140,7 @@ func New(params Params) (*App, error) {
 		timezone:   params.Timezone,
 		periods:    params.Periods,
 		votes:      make(map[string]map[string]string),
+		groupOrder: params.GroupOrder,
 		nowFunc:    time.Now,
 	}
 
@@ -303,7 +306,7 @@ func (a *App) votePageData(person string) []groupData {
 	for name := range groupMap {
 		groupNames = append(groupNames, name)
 	}
-	slices.Sort(groupNames)
+	sortGroupNames(groupNames, a.groupOrder)
 
 	personVotes := a.votes[person]
 
@@ -386,7 +389,7 @@ func (a *App) tallyData(weekday time.Weekday, period string) []groupData {
 	for name := range groupMap {
 		groupNames = append(groupNames, name)
 	}
-	slices.Sort(groupNames)
+	sortGroupNames(groupNames, a.groupOrder)
 
 	sortEntries := func(a, b scored) int {
 		// Score descending.
@@ -480,4 +483,28 @@ func periodForHour(periods Periods, hour int) string {
 		}
 	}
 	return ""
+}
+
+// sortGroupNames sorts group names in place: groups present in groupOrder come
+// first (in the order specified), followed by remaining groups sorted
+// alphabetically.
+func sortGroupNames(names []string, groupOrder []string) {
+	orderIndex := make(map[string]int, len(groupOrder))
+	for i, name := range groupOrder {
+		orderIndex[name] = i
+	}
+	slices.SortFunc(names, func(a, b string) int {
+		idxA, okA := orderIndex[a]
+		idxB, okB := orderIndex[b]
+		switch {
+		case okA && okB:
+			return cmp.Compare(idxA, idxB)
+		case okA:
+			return -1
+		case okB:
+			return 1
+		default:
+			return cmp.Compare(a, b)
+		}
+	})
 }

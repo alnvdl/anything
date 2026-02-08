@@ -341,3 +341,45 @@ func TestHealthCheckInterval(t *testing.T) {
 		})
 	}
 }
+
+func TestGroupOrder(t *testing.T) {
+	var tests = []struct {
+		desc      string
+		env       string
+		wantCount int
+		wantErr   bool
+	}{{
+		desc:      "not set returns nil",
+		env:       "",
+		wantCount: 0,
+	}, {
+		desc:      "valid group order",
+		env:       `["Uptown","Downtown"]`,
+		wantCount: 2,
+	}, {
+		desc:      "single group",
+		env:       `["Downtown"]`,
+		wantCount: 1,
+	}, {
+		desc:      "empty array",
+		env:       `[]`,
+		wantCount: 0,
+	}, {
+		desc:    "invalid JSON",
+		env:     `not json`,
+		wantErr: true,
+	}}
+
+	for _, test := range tests {
+		t.Run(test.desc, func(t *testing.T) {
+			t.Setenv("GROUP_ORDER", test.env)
+			got, err := GroupOrder()
+			if (err != nil) != test.wantErr {
+				t.Fatalf("GroupOrder() err = %v, wantErr = %v", err, test.wantErr)
+			}
+			if len(got) != test.wantCount {
+				t.Errorf("GroupOrder() returned %d entries, want %d", len(got), test.wantCount)
+			}
+		})
+	}
+}

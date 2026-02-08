@@ -2,6 +2,7 @@ PORT = 8080
 TIMEZONE = America/Sao_Paulo
 PERIODS = '{"breakfast":[0,10],"lunch":[10,15],"dinner":[15,0]}'
 PEOPLE = '{"alice":"token-alice","bob":"token-bob"}'
+GROUP_ORDER = '["Trendy Neighborhood","Downtown","Upscale Street"]'
 ENTRIES = '[ \
 	{"name":"Burger Joint","group":"Downtown","cost":1,"open":{"mon":["lunch","dinner"],"tue":["lunch","dinner"],"wed":["lunch","dinner"],"thu":["lunch","dinner"],"fri":["lunch","dinner"],"sat":["lunch","dinner"],"sun":["lunch","dinner"]}}, \
 	{"name":"Greasy Fast Food","group":"Downtown","cost":1,"open":{"mon":["breakfast","lunch","dinner"],"tue":["breakfast","lunch","dinner"],"wed":["breakfast","lunch","dinner"],"thu":["breakfast","lunch","dinner"],"fri":["breakfast","lunch","dinner"],"sat":["breakfast","lunch","dinner"],"sun":["breakfast","lunch","dinner"]}}, \
@@ -33,6 +34,7 @@ dev:
 	PERIODS=$(PERIODS) \
 	PEOPLE=$(PEOPLE) \
 	ENTRIES=$(ENTRIES) \
+	GROUP_ORDER=$(GROUP_ORDER) \
 	go run -buildvcs=true ./cmd/anythingsrv
 
 test:

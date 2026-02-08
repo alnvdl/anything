@@ -52,3 +52,8 @@ func (a *App) Votes() map[string]map[string]string {
 	defer a.mu.RUnlock()
 	return a.votes
 }
+
+// SortGroupNames exposes sortGroupNames for testing.
+func SortGroupNames(names []string, groupOrder []string) {
+	sortGroupNames(names, groupOrder)
+}

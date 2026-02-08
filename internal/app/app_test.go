@@ -259,6 +259,109 @@ func TestVotePageDataNoVotes(t *testing.T) {
 	}
 }
 
+func TestSortGroupNames(t *testing.T) {
+	var tests = []struct {
+		desc       string
+		names      []string
+		groupOrder []string
+		want       []string
+	}{{
+		desc:       "no group order sorts alphabetically",
+		names:      []string{"Uptown", "Downtown", "Midtown"},
+		groupOrder: nil,
+		want:       []string{"Downtown", "Midtown", "Uptown"},
+	}, {
+		desc:       "full group order",
+		names:      []string{"Uptown", "Downtown", "Midtown"},
+		groupOrder: []string{"Midtown", "Uptown", "Downtown"},
+		want:       []string{"Midtown", "Uptown", "Downtown"},
+	}, {
+		desc:       "partial group order puts unmatched at end alphabetically",
+		names:      []string{"Uptown", "Downtown", "Midtown", "Suburbs"},
+		groupOrder: []string{"Midtown"},
+		want:       []string{"Midtown", "Downtown", "Suburbs", "Uptown"},
+	}, {
+		desc:       "group order with entries not in names is ignored",
+		names:      []string{"Uptown", "Downtown"},
+		groupOrder: []string{"Nonexistent", "Uptown", "Downtown"},
+		want:       []string{"Uptown", "Downtown"},
+	}, {
+		desc:       "empty group order sorts alphabetically",
+		names:      []string{"Uptown", "Downtown"},
+		groupOrder: []string{},
+		want:       []string{"Downtown", "Uptown"},
+	}, {
+		desc:       "single group",
+		names:      []string{"Downtown"},
+		groupOrder: []string{"Downtown"},
+		want:       []string{"Downtown"},
+	}}
+
+	for _, test := range tests {
+		t.Run(test.desc, func(t *testing.T) {
+			names := make([]string, len(test.names))
+			copy(names, test.names)
+			app.SortGroupNames(names, test.groupOrder)
+			for i, got := range names {
+				if got != test.want[i] {
+					t.Errorf("names[%d] = %q, want %q (full result: %v)", i, got, test.want[i], names)
+					break
+				}
+			}
+		})
+	}
+}
+
+func TestVotePageDataWithGroupOrder(t *testing.T) {
+	a, err := app.New(app.Params{
+		Entries:    testEntries(),
+		People:     testPeople(),
+		Timezone:   time.UTC,
+		Periods:    testPeriods(),
+		GroupOrder: []string{"Uptown", "Downtown"},
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	groups := a.VotePageData("alice")
+
+	if len(groups) != 2 {
+		t.Fatalf("expected 2 groups, got %d", len(groups))
+	}
+	if groups[0].Name != "Uptown" {
+		t.Errorf("first group = %q, want Uptown", groups[0].Name)
+	}
+	if groups[1].Name != "Downtown" {
+		t.Errorf("second group = %q, want Downtown", groups[1].Name)
+	}
+}
+
+func TestTallyDataWithGroupOrder(t *testing.T) {
+	a, err := app.New(app.Params{
+		Entries:    testEntries(),
+		People:     testPeople(),
+		Timezone:   time.UTC,
+		Periods:    testPeriods(),
+		GroupOrder: []string{"Uptown", "Downtown"},
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	groups := a.TallyData(time.Monday, "lunch")
+
+	if len(groups) != 2 {
+		t.Fatalf("expected 2 groups, got %d", len(groups))
+	}
+	if groups[0].Name != "Uptown" {
+		t.Errorf("first group = %q, want Uptown", groups[0].Name)
+	}
+	if groups[1].Name != "Downtown" {
+		t.Errorf("second group = %q, want Downtown", groups[1].Name)
+	}
+}
+
 func TestTallyData(t *testing.T) {
 	a := newTestApp(t)
 
