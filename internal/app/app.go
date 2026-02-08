@@ -104,6 +104,7 @@ type entryData struct {
 	Score       int
 	CostDisplay string
 	Closed      bool
+	StrongNo    bool
 }
 
 // App is the core application struct.
@@ -171,6 +172,7 @@ func New(params Params) (*App, error) {
 		"templates/layout.html",
 		"templates/nav.html",
 		"templates/entrylist.html",
+		"templates/icons.html",
 		"templates/vote.html",
 	)
 	if err != nil {
@@ -181,6 +183,7 @@ func New(params Params) (*App, error) {
 		"templates/layout.html",
 		"templates/nav.html",
 		"templates/entrylist.html",
+		"templates/icons.html",
 		"templates/tally.html",
 	)
 	if err != nil {
@@ -338,19 +341,24 @@ func (a *App) tallyData(weekday time.Weekday, period string) []groupData {
 	defer a.mu.RUnlock()
 
 	type scored struct {
-		entry  Entry
-		score  int
-		closed bool
+		entry    Entry
+		score    int
+		closed   bool
+		strongNo bool
 	}
 
 	var items []scored
 	for _, e := range a.entries {
 		sum := 0
+		strongNo := false
 		for person := range a.people {
 			voteVal := 2 // Default: yes.
 			if personVotes, ok := a.votes[person]; ok {
 				if v, ok := personVotes[e.Name]; ok {
 					voteVal = voteScores[v]
+					if v == "strong-no" {
+						strongNo = true
+					}
 				}
 			}
 			sum += voteVal
@@ -365,7 +373,7 @@ func (a *App) tallyData(weekday time.Weekday, period string) []groupData {
 			}
 		}
 
-		items = append(items, scored{e, score, closed})
+		items = append(items, scored{e, score, closed, strongNo})
 	}
 
 	// Group by group name.
@@ -420,6 +428,7 @@ func (a *App) tallyData(weekday time.Weekday, period string) []groupData {
 				Score:       s.score,
 				CostDisplay: strings.Repeat("$", s.entry.Cost),
 				Closed:      s.closed,
+				StrongNo:    s.strongNo,
 			})
 		}
 

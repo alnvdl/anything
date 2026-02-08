@@ -4,10 +4,12 @@
 {{end}}
 
 {{define "entry"}}
-    <div class="entry"{{if .Closed}} style="opacity: 0.5"{{end}}>
-        <div>{{.Name}}</div>
-        <span>{{.Score}} · {{.CostDisplay}}</span>
-    </div>
+<div class="entry" {{if .Closed}} style="opacity: 0.5" {{end}}>
+    <div>{{.Name}}</div>
+    <span>{{if .StrongNo}}<span class="svg-strong-no"></span> · {{end}}{{.Score}} · {{.CostDisplay}}</span>
+</div>
 {{end}}
 
-{{define "scripts"}}{{end}}
+{{define "scripts"}}
+{{template "icons" "16"}}
+{{end}}
