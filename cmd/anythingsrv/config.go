@@ -11,8 +11,9 @@ import (
 )
 
 const (
-	defaultDBPath          = "db.json"
-	defaultPersistInterval = 15 * time.Minute
+	defaultDBPath              = "db.json"
+	defaultPersistInterval     = 15 * time.Minute
+	defaultHealthCheckInterval = 3 * time.Minute
 )
 
 // DBPath reads the DB_PATH environment variable. If not set, it defaults to
@@ -33,6 +34,16 @@ func PersistInterval() time.Duration {
 		return d
 	}
 	return defaultPersistInterval
+}
+
+// HealthCheckInterval reads and validates the HEALTH_CHECK_INTERVAL
+// environment variable. If not set, it defaults to 3 minutes.
+func HealthCheckInterval() time.Duration {
+	s := os.Getenv("HEALTH_CHECK_INTERVAL")
+	if d, err := time.ParseDuration(s); err == nil {
+		return d
+	}
+	return defaultHealthCheckInterval
 }
 
 // Port reads and validates the PORT environment variable.

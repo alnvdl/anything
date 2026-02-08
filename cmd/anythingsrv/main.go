@@ -8,11 +8,37 @@ import (
 	"os"
 	"os/signal"
 	"syscall"
+	"time"
 
 	"github.com/alnvdl/autosave"
 
 	"github.com/alnvdl/anything/internal/app"
 )
+
+// serverHealthCheck periodically checks the server health by making a request
+// to the /status endpoint.
+func serverHealthCheck(interval time.Duration, port int, close chan bool) {
+	for {
+		select {
+		case <-time.After(interval):
+			res, err := http.Get(fmt.Sprintf("http://localhost:%d/status", port))
+			if err != nil {
+				slog.Error("error making health check request",
+					slog.String("err", err.Error()))
+				continue
+			}
+			if res.StatusCode == http.StatusOK {
+				slog.Info("server is healthy")
+			} else {
+				slog.Error("server is not healthy",
+					slog.Int("status_code", res.StatusCode))
+			}
+		case <-close:
+			slog.Info("stopping health check mechanism")
+			return
+		}
+	}
+}
 
 func main() {
 	port, err := Port()
@@ -67,10 +93,14 @@ func main() {
 		Handler: application,
 	}
 
+	healthCheck := make(chan bool)
+	go serverHealthCheck(HealthCheckInterval(), port, healthCheck)
+
 	signals := make(chan os.Signal, 1)
 	signal.Notify(signals, syscall.SIGINT, syscall.SIGTERM)
 	go func() {
 		<-signals
+		close(healthCheck)
 		application.Close()
 		slog.Info("shutting down server")
 		server.Shutdown(context.Background())

@@ -311,3 +311,33 @@ func TestPersistInterval(t *testing.T) {
 		})
 	}
 }
+
+func TestHealthCheckInterval(t *testing.T) {
+	var tests = []struct {
+		desc string
+		env  string
+		want time.Duration
+	}{{
+		desc: "default when not set",
+		env:  "",
+		want: 3 * time.Minute,
+	}, {
+		desc: "custom interval",
+		env:  "1m",
+		want: 1 * time.Minute,
+	}, {
+		desc: "invalid falls back to default",
+		env:  "notaduration",
+		want: 3 * time.Minute,
+	}}
+
+	for _, test := range tests {
+		t.Run(test.desc, func(t *testing.T) {
+			t.Setenv("HEALTH_CHECK_INTERVAL", test.env)
+			got := HealthCheckInterval()
+			if got != test.want {
+				t.Errorf("HealthCheckInterval() = %v, want %v", got, test.want)
+			}
+		})
+	}
+}
