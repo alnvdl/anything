@@ -16,3 +16,6 @@ exercise how I will maintain and evolve a rather small application almost
 entirely coded with an LLM.
 
 Documentation on how to deploy and use it will be added soon.
+
+All icons are from the
+[Bootstrap Icons project](https://icons.getbootstrap.com/).

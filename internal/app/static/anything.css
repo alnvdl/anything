@@ -73,8 +73,15 @@ fieldset.radio-group input[type="radio"]+label {
     margin: 0;
 }
 
-img {
-    filter: opacity(40%);
+.header {
+	display: flex;
+	gap: 8px;
+	align-items: baseline;
+}
+
+.logo {
+    width: 32px;
+    height: 32px;
 }
 
 .entry-list {
