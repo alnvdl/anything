@@ -121,7 +121,7 @@ type entryData struct {
 // App is the core application struct.
 type App struct {
 	entries    []Entry
-	entryGroup map[string]string
+	entryGroup map[string]map[string]bool
 	people     map[string]string
 	tokenMap   map[string]string
 	timezone   *time.Location
@@ -144,7 +144,7 @@ type App struct {
 func New(params Params) (*App, error) {
 	a := &App{
 		entries:    params.Entries,
-		entryGroup: make(map[string]string),
+		entryGroup: make(map[string]map[string]bool),
 		people:     params.People,
 		tokenMap:   make(map[string]string),
 		timezone:   params.Timezone,
@@ -155,7 +155,10 @@ func New(params Params) (*App, error) {
 	}
 
 	for _, e := range a.entries {
-		a.entryGroup[e.Name] = e.Group
+		if a.entryGroup[e.Name] == nil {
+			a.entryGroup[e.Name] = make(map[string]bool)
+		}
+		a.entryGroup[e.Name][e.Group] = true
 	}
 
 	for person, token := range a.people {
@@ -295,8 +298,8 @@ func (a *App) updateVotes(person string, votes map[string]string) {
 		if !ok {
 			continue
 		}
-		expectedGroup, exists := a.entryGroup[name]
-		if !exists || expectedGroup != group {
+		groups, exists := a.entryGroup[name]
+		if !exists || !groups[group] {
 			continue
 		}
 		if _, ok := voteScores[EntryVote(vote)]; !ok {

@@ -73,11 +73,15 @@ func testPeriods() app.Periods {
 	}
 }
 
-// newTestApp creates an App for testing.
-func newTestApp(t *testing.T) *app.App {
+// newTestApp creates an App for testing. If entries are provided, they are
+// used instead of the default testEntries().
+func newTestApp(t *testing.T, entries ...app.Entry) *app.App {
 	t.Helper()
+	if len(entries) == 0 {
+		entries = testEntries()
+	}
 	a, err := app.New(app.Params{
-		Entries:  testEntries(),
+		Entries:  entries,
 		People:   testPeople(),
 		Timezone: time.UTC,
 		Periods:  testPeriods(),
@@ -134,6 +138,7 @@ func TestPersonForToken(t *testing.T) {
 func TestUpdateVotes(t *testing.T) {
 	var tests = []struct {
 		desc      string
+		entries   []app.Entry
 		person    string
 		votes     map[string]string
 		wantCount int
@@ -181,11 +186,30 @@ func TestUpdateVotes(t *testing.T) {
 			"Pizza Place": "yes",
 		},
 		wantCount: 0,
+	}, {
+		desc: "accepts same entry name in different groups",
+		entries: []app.Entry{{
+			Name:  "Shared Name",
+			Group: "GroupA",
+			Open:  map[string][]string{"mon": {"lunch"}},
+			Cost:  1,
+		}, {
+			Name:  "Shared Name",
+			Group: "GroupB",
+			Open:  map[string][]string{"mon": {"lunch"}},
+			Cost:  2,
+		}},
+		person: "alice",
+		votes: map[string]string{
+			"GroupA|Shared Name": "strong-yes",
+			"GroupB|Shared Name": "no",
+		},
+		wantCount: 2,
 	}}
 
 	for _, test := range tests {
 		t.Run(test.desc, func(t *testing.T) {
-			a := newTestApp(t)
+			a := newTestApp(t, test.entries...)
 			a.UpdateVotes(test.person, test.votes)
 
 			personVotes := a.Votes()[test.person]
