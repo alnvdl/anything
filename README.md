@@ -1,7 +1,7 @@
 # alnvdl/anything
 
-Anything is a simple web application built for the days where you ask your
-significant other what's for dinner, and the answer is "anything".
+Anything is a simple web application built for when you ask your significant
+other what's for dinner and the answer you get is "anything".
 
 This app was built with Claude Opus 4.6 in GitHub Copilot in one shot using:
 - [this prompt](https://gist.github.com/alnvdl/5d0d175c5a40b442048f879dc0ce4cef)

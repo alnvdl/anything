@@ -25,8 +25,28 @@ var templateFS embed.FS
 //go:embed static/*
 var staticFS embed.FS
 
+// Entry represents a voting entry with its name, group, cost and schedule.
+type Entry struct {
+	Name  string
+	Group string
+	Open  map[string][]string
+	Cost  int
+}
+
+// Periods maps period names to [start_hour, end_hour).
+type Periods map[string][2]int
+
+// EntryVote represents a vote value for a single entry.
+type EntryVote string
+
+// GroupVote maps entry names to their votes within a group.
+type GroupVote map[string]EntryVote
+
+// PersonVote maps group names to group votes for a person.
+type PersonVote map[string]GroupVote
+
 // voteScores maps vote values to their numeric scores.
-var voteScores = map[string]int{
+var voteScores = map[EntryVote]int{
 	"strong-no":  0,
 	"no":         1,
 	"yes":        2,
@@ -54,17 +74,6 @@ var weekdayFullNames = map[time.Weekday]string{
 	time.Friday:    "Friday",
 	time.Saturday:  "Saturday",
 }
-
-// Entry represents a voting entry from config.
-type Entry struct {
-	Name  string              `json:"name"`
-	Group string              `json:"group"`
-	Open  map[string][]string `json:"open"`
-	Cost  int                 `json:"cost"`
-}
-
-// Periods maps period names to [start_hour, end_hour).
-type Periods map[string][2]int
 
 // Params contains all parameters needed to create an App.
 type Params struct {
@@ -101,6 +110,7 @@ type groupData struct {
 // entryData holds a single entry for template rendering.
 type entryData struct {
 	Name        string
+	Group       string
 	CurrentVote string
 	Score       int
 	CostDisplay string
@@ -111,7 +121,7 @@ type entryData struct {
 // App is the core application struct.
 type App struct {
 	entries    []Entry
-	entryNames map[string]bool
+	entryGroup map[string]string
 	people     map[string]string
 	tokenMap   map[string]string
 	timezone   *time.Location
@@ -121,7 +131,7 @@ type App struct {
 	nowFunc    func() time.Time
 
 	mu    sync.RWMutex
-	votes map[string]map[string]string
+	votes map[string]PersonVote
 
 	autoSaver *autosave.AutoSaver
 
@@ -134,18 +144,18 @@ type App struct {
 func New(params Params) (*App, error) {
 	a := &App{
 		entries:    params.Entries,
-		entryNames: make(map[string]bool),
+		entryGroup: make(map[string]string),
 		people:     params.People,
 		tokenMap:   make(map[string]string),
 		timezone:   params.Timezone,
 		periods:    params.Periods,
-		votes:      make(map[string]map[string]string),
+		votes:      make(map[string]PersonVote),
 		groupOrder: params.GroupOrder,
 		nowFunc:    time.Now,
 	}
 
 	for _, e := range a.entries {
-		a.entryNames[e.Name] = true
+		a.entryGroup[e.Name] = e.Group
 	}
 
 	for person, token := range a.people {
@@ -240,7 +250,7 @@ func (a *App) Load(r io.Reader) error {
 	defer a.mu.Unlock()
 
 	dec := json.NewDecoder(r)
-	var data map[string]map[string]string
+	var data map[string]PersonVote
 	err := dec.Decode(&data)
 	if errors.Is(err, io.EOF) || errors.Is(err, io.ErrUnexpectedEOF) {
 		// Ignoring a corrupted or empty file is intentional: we prefer to
@@ -273,22 +283,31 @@ func (a *App) Close() {
 }
 
 // updateVotes saves votes for a person, cleaning invalid entries and vote values.
+// Form keys are expected in "Group|Entry" format.
 func (a *App) updateVotes(person string, votes map[string]string) {
 	defer a.delayAutoSave()
 	a.mu.Lock()
 	defer a.mu.Unlock()
 
-	cleaned := make(map[string]string)
-	for name, vote := range votes {
-		if !a.entryNames[name] {
+	pv := make(PersonVote)
+	for key, vote := range votes {
+		group, name, ok := strings.Cut(key, "|")
+		if !ok {
 			continue
 		}
-		if _, ok := voteScores[vote]; !ok {
+		expectedGroup, exists := a.entryGroup[name]
+		if !exists || expectedGroup != group {
 			continue
 		}
-		cleaned[name] = vote
+		if _, ok := voteScores[EntryVote(vote)]; !ok {
+			continue
+		}
+		if pv[group] == nil {
+			pv[group] = make(GroupVote)
+		}
+		pv[group][name] = EntryVote(vote)
 	}
-	a.votes[person] = cleaned
+	a.votes[person] = pv
 }
 
 // votePageData returns grouped entries with current votes for the vote page.
@@ -321,10 +340,13 @@ func (a *App) votePageData(person string) []groupData {
 		for _, e := range entries {
 			vote := ""
 			if personVotes != nil {
-				vote = personVotes[e.Name]
+				if gv, ok := personVotes[e.Group]; ok {
+					vote = string(gv[e.Name])
+				}
 			}
 			eds = append(eds, entryData{
 				Name:        e.Name,
+				Group:       e.Group,
 				CurrentVote: vote,
 			})
 		}
@@ -357,10 +379,12 @@ func (a *App) tallyData(weekday time.Weekday, period string) []groupData {
 		for person := range a.people {
 			voteVal := 2 // Default: yes.
 			if personVotes, ok := a.votes[person]; ok {
-				if v, ok := personVotes[e.Name]; ok {
-					voteVal = voteScores[v]
-					if v == "strong-no" {
-						strongNo = true
+				if gv, ok := personVotes[e.Group]; ok {
+					if v, ok := gv[e.Name]; ok {
+						voteVal = voteScores[v]
+						if v == "strong-no" {
+							strongNo = true
+						}
 					}
 				}
 			}

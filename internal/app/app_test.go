@@ -9,6 +9,15 @@ import (
 	"github.com/alnvdl/anything/internal/app"
 )
 
+// errorContains checks that err contains the substring want. If want is empty,
+// it checks that err is nil.
+func errorContains(err error, want string) bool {
+	if want == "" {
+		return err == nil
+	}
+	return err != nil && strings.Contains(err.Error(), want)
+}
+
 // testEntries returns a set of test entries.
 func testEntries() []app.Entry {
 	return []app.Entry{{
@@ -132,31 +141,45 @@ func TestUpdateVotes(t *testing.T) {
 		desc:   "valid votes",
 		person: "alice",
 		votes: map[string]string{
-			"Pizza Place":  "strong-yes",
-			"Burger Joint": "no",
+			"Downtown|Pizza Place":  "strong-yes",
+			"Downtown|Burger Joint": "no",
 		},
 		wantCount: 2,
 	}, {
 		desc:   "cleans invalid entry names",
 		person: "alice",
 		votes: map[string]string{
-			"Pizza Place":   "yes",
-			"Nonexistent":   "yes",
-			"Also Not Real": "no",
+			"Downtown|Pizza Place":  "yes",
+			"Downtown|Nonexistent":  "yes",
+			"Nowhere|Also Not Real": "no",
 		},
 		wantCount: 1,
 	}, {
 		desc:   "cleans invalid vote values",
 		person: "bob",
 		votes: map[string]string{
-			"Pizza Place":  "invalid-vote",
-			"Burger Joint": "yes",
+			"Downtown|Pizza Place":  "invalid-vote",
+			"Downtown|Burger Joint": "yes",
 		},
 		wantCount: 1,
 	}, {
 		desc:      "empty votes",
 		person:    "alice",
 		votes:     map[string]string{},
+		wantCount: 0,
+	}, {
+		desc:   "rejects entry with wrong group",
+		person: "alice",
+		votes: map[string]string{
+			"Uptown|Pizza Place": "yes",
+		},
+		wantCount: 0,
+	}, {
+		desc:   "rejects entry without group separator",
+		person: "alice",
+		votes: map[string]string{
+			"Pizza Place": "yes",
+		},
 		wantCount: 0,
 	}}
 
@@ -166,8 +189,12 @@ func TestUpdateVotes(t *testing.T) {
 			a.UpdateVotes(test.person, test.votes)
 
 			personVotes := a.Votes()[test.person]
-			if len(personVotes) != test.wantCount {
-				t.Errorf("UpdateVotes stored %d votes, want %d", len(personVotes), test.wantCount)
+			count := 0
+			for _, gv := range personVotes {
+				count += len(gv)
+			}
+			if count != test.wantCount {
+				t.Errorf("UpdateVotes stored %d votes, want %d", count, test.wantCount)
 			}
 		})
 	}
@@ -178,32 +205,38 @@ func TestUpdateVotesOverwrites(t *testing.T) {
 
 	// First submission.
 	a.UpdateVotes("alice", map[string]string{
-		"Pizza Place":  "strong-yes",
-		"Burger Joint": "no",
+		"Downtown|Pizza Place":  "strong-yes",
+		"Downtown|Burger Joint": "no",
 	})
 
 	// Second submission overwrites.
 	a.UpdateVotes("alice", map[string]string{
-		"Sushi Bar": "strong-no",
+		"Uptown|Sushi Bar": "strong-no",
 	})
 
 	votes := a.Votes()["alice"]
-	if len(votes) != 1 {
-		t.Fatalf("expected 1 vote after overwrite, got %d", len(votes))
+	count := 0
+	for _, gv := range votes {
+		count += len(gv)
 	}
-	if votes["Sushi Bar"] != "strong-no" {
-		t.Errorf("expected Sushi Bar vote to be strong-no, got %q", votes["Sushi Bar"])
+	if count != 1 {
+		t.Fatalf("expected 1 vote after overwrite, got %d", count)
 	}
-	if _, ok := votes["Pizza Place"]; ok {
-		t.Error("Pizza Place vote should have been removed on overwrite")
+	if votes["Uptown"]["Sushi Bar"] != "strong-no" {
+		t.Errorf("expected Sushi Bar vote to be strong-no, got %q", votes["Uptown"]["Sushi Bar"])
+	}
+	if dv, ok := votes["Downtown"]; ok {
+		if _, ok := dv["Pizza Place"]; ok {
+			t.Error("Pizza Place vote should have been removed on overwrite")
+		}
 	}
 }
 
 func TestVotePageData(t *testing.T) {
 	a := newTestApp(t)
 	a.UpdateVotes("alice", map[string]string{
-		"Pizza Place": "strong-yes",
-		"Sushi Bar":   "no",
+		"Downtown|Pizza Place": "strong-yes",
+		"Uptown|Sushi Bar":     "no",
 	})
 
 	groups := a.VotePageData("alice")
@@ -367,16 +400,16 @@ func TestTallyData(t *testing.T) {
 
 	// Alice votes.
 	a.UpdateVotes("alice", map[string]string{
-		"Pizza Place":  "strong-yes", // 3.
-		"Burger Joint": "no",         // 1.
-		"Sushi Bar":    "strong-no",  // 0.
-		"Taco Stand":   "yes",        // 2.
+		"Downtown|Pizza Place":  "strong-yes", // 3.
+		"Downtown|Burger Joint": "no",         // 1.
+		"Uptown|Sushi Bar":      "strong-no",  // 0.
+		"Uptown|Taco Stand":     "yes",        // 2.
 	})
 
 	// Bob votes.
 	a.UpdateVotes("bob", map[string]string{
-		"Pizza Place":  "yes",        // 2.
-		"Burger Joint": "strong-yes", // 3.
+		"Downtown|Pizza Place":  "yes",        // 2.
+		"Downtown|Burger Joint": "strong-yes", // 3.
 		// Sushi Bar: no vote = yes (2).
 		// Taco Stand: no vote = yes (2).
 	})
@@ -737,11 +770,11 @@ func TestPeriodTallyWeekdayWithGaps(t *testing.T) {
 func TestSave(t *testing.T) {
 	a := newTestApp(t)
 	a.UpdateVotes("alice", map[string]string{
-		"Pizza Place":  "strong-yes",
-		"Burger Joint": "no",
+		"Downtown|Pizza Place":  "strong-yes",
+		"Downtown|Burger Joint": "no",
 	})
 	a.UpdateVotes("bob", map[string]string{
-		"Sushi Bar": "yes",
+		"Uptown|Sushi Bar": "yes",
 	})
 
 	var buf bytes.Buffer
@@ -750,7 +783,7 @@ func TestSave(t *testing.T) {
 	}
 
 	saved := buf.String()
-	for _, want := range []string{"alice", "bob", "Pizza Place", "strong-yes", "Burger Joint", "no", "Sushi Bar", "yes"} {
+	for _, want := range []string{"alice", "bob", "Downtown", "Uptown", "Pizza Place", "strong-yes", "Burger Joint", "no", "Sushi Bar", "yes"} {
 		if !strings.Contains(saved, want) {
 			t.Errorf("saved data does not contain %q", want)
 		}
@@ -761,27 +794,27 @@ func TestLoad(t *testing.T) {
 	var tests = []struct {
 		desc      string
 		input     string
-		wantVotes map[string]map[string]string
-		wantErr   bool
+		wantVotes map[string]app.PersonVote
+		wantErr   string
 	}{{
 		desc:  "valid data",
-		input: `{"alice":{"Pizza Place":"strong-yes","Burger Joint":"no"},"bob":{"Sushi Bar":"yes"}}`,
-		wantVotes: map[string]map[string]string{
-			"alice": {"Pizza Place": "strong-yes", "Burger Joint": "no"},
-			"bob":   {"Sushi Bar": "yes"},
+		input: `{"alice":{"Downtown":{"Pizza Place":"strong-yes","Burger Joint":"no"}},"bob":{"Uptown":{"Sushi Bar":"yes"}}}`,
+		wantVotes: map[string]app.PersonVote{
+			"alice": {"Downtown": app.GroupVote{"Pizza Place": "strong-yes", "Burger Joint": "no"}},
+			"bob":   {"Uptown": app.GroupVote{"Sushi Bar": "yes"}},
 		},
 	}, {
 		desc:      "empty file",
 		input:     "",
-		wantVotes: map[string]map[string]string{},
+		wantVotes: map[string]app.PersonVote{},
 	}, {
 		desc:      "empty JSON object",
 		input:     "{}",
-		wantVotes: map[string]map[string]string{},
+		wantVotes: map[string]app.PersonVote{},
 	}, {
 		desc:    "invalid JSON",
 		input:   "{not valid json",
-		wantErr: true,
+		wantErr: "cannot deserialize votes",
 	}}
 
 	for _, test := range tests {
@@ -789,10 +822,10 @@ func TestLoad(t *testing.T) {
 			a := newTestApp(t)
 
 			err := a.Load(strings.NewReader(test.input))
-			if (err != nil) != test.wantErr {
-				t.Fatalf("Load() err = %v, wantErr = %v", err, test.wantErr)
+			if !errorContains(err, test.wantErr) {
+				t.Fatalf("Load() err = %v, wantErr = %q", err, test.wantErr)
 			}
-			if test.wantErr {
+			if test.wantErr != "" {
 				return
 			}
 
@@ -800,15 +833,22 @@ func TestLoad(t *testing.T) {
 			if len(votes) != len(test.wantVotes) {
 				t.Fatalf("Load() resulted in %d people, want %d", len(votes), len(test.wantVotes))
 			}
-			for person, wantPersonVotes := range test.wantVotes {
-				gotPersonVotes := votes[person]
-				if len(gotPersonVotes) != len(wantPersonVotes) {
-					t.Errorf("person %q has %d votes, want %d", person, len(gotPersonVotes), len(wantPersonVotes))
+			for person, wantPV := range test.wantVotes {
+				gotPV := votes[person]
+				if len(gotPV) != len(wantPV) {
+					t.Errorf("person %q has %d groups, want %d", person, len(gotPV), len(wantPV))
 					continue
 				}
-				for entry, wantVote := range wantPersonVotes {
-					if gotPersonVotes[entry] != wantVote {
-						t.Errorf("person %q entry %q = %q, want %q", person, entry, gotPersonVotes[entry], wantVote)
+				for group, wantGV := range wantPV {
+					gotGV := gotPV[group]
+					if len(gotGV) != len(wantGV) {
+						t.Errorf("person %q group %q has %d votes, want %d", person, group, len(gotGV), len(wantGV))
+						continue
+					}
+					for entry, wantVote := range wantGV {
+						if gotGV[entry] != wantVote {
+							t.Errorf("person %q group %q entry %q = %q, want %q", person, group, entry, gotGV[entry], wantVote)
+						}
 					}
 				}
 			}
@@ -819,12 +859,12 @@ func TestLoad(t *testing.T) {
 func TestSaveLoadRoundTrip(t *testing.T) {
 	a := newTestApp(t)
 	a.UpdateVotes("alice", map[string]string{
-		"Pizza Place":  "strong-yes",
-		"Burger Joint": "no",
+		"Downtown|Pizza Place":  "strong-yes",
+		"Downtown|Burger Joint": "no",
 	})
 	a.UpdateVotes("bob", map[string]string{
-		"Sushi Bar":  "yes",
-		"Taco Stand": "strong-no",
+		"Uptown|Sushi Bar":  "yes",
+		"Uptown|Taco Stand": "strong-no",
 	})
 
 	// Save.
@@ -845,15 +885,22 @@ func TestSaveLoadRoundTrip(t *testing.T) {
 	if len(loadedVotes) != len(origVotes) {
 		t.Fatalf("round-trip: %d people, want %d", len(loadedVotes), len(origVotes))
 	}
-	for person, origPersonVotes := range origVotes {
-		loadedPersonVotes := loadedVotes[person]
-		if len(loadedPersonVotes) != len(origPersonVotes) {
-			t.Errorf("person %q: %d votes, want %d", person, len(loadedPersonVotes), len(origPersonVotes))
+	for person, origPV := range origVotes {
+		loadedPV := loadedVotes[person]
+		if len(loadedPV) != len(origPV) {
+			t.Errorf("person %q: %d groups, want %d", person, len(loadedPV), len(origPV))
 			continue
 		}
-		for entry, origVote := range origPersonVotes {
-			if loadedPersonVotes[entry] != origVote {
-				t.Errorf("person %q entry %q = %q, want %q", person, entry, loadedPersonVotes[entry], origVote)
+		for group, origGV := range origPV {
+			loadedGV := loadedPV[group]
+			if len(loadedGV) != len(origGV) {
+				t.Errorf("person %q group %q: %d votes, want %d", person, group, len(loadedGV), len(origGV))
+				continue
+			}
+			for entry, origVote := range origGV {
+				if loadedGV[entry] != origVote {
+					t.Errorf("person %q group %q entry %q = %q, want %q", person, group, entry, loadedGV[entry], origVote)
+				}
 			}
 		}
 	}

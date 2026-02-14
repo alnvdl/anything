@@ -1,16 +1,26 @@
 package main
 
 import (
+	"strings"
 	"testing"
 	"time"
 )
+
+// errorContains checks that err contains the substring want. If want is empty,
+// it checks that err is nil.
+func errorContains(err error, want string) bool {
+	if want == "" {
+		return err == nil
+	}
+	return err != nil && strings.Contains(err.Error(), want)
+}
 
 func TestPort(t *testing.T) {
 	var tests = []struct {
 		desc    string
 		env     string
 		want    int
-		wantErr bool
+		wantErr string
 	}{{
 		desc: "valid port",
 		env:  "8080",
@@ -18,23 +28,23 @@ func TestPort(t *testing.T) {
 	}, {
 		desc:    "not set",
 		env:     "",
-		wantErr: true,
+		wantErr: "PORT is not set",
 	}, {
 		desc:    "not a number",
 		env:     "abc",
-		wantErr: true,
+		wantErr: "PORT is not a valid integer",
 	}, {
 		desc:    "zero",
 		env:     "0",
-		wantErr: true,
+		wantErr: "PORT must be between 1 and 65535",
 	}, {
 		desc:    "too large",
 		env:     "99999",
-		wantErr: true,
+		wantErr: "PORT must be between 1 and 65535",
 	}, {
 		desc:    "negative",
 		env:     "-1",
-		wantErr: true,
+		wantErr: "PORT must be between 1 and 65535",
 	}, {
 		desc: "boundary low",
 		env:  "1",
@@ -49,8 +59,8 @@ func TestPort(t *testing.T) {
 		t.Run(test.desc, func(t *testing.T) {
 			t.Setenv("PORT", test.env)
 			got, err := Port()
-			if (err != nil) != test.wantErr {
-				t.Fatalf("Port() err = %v, wantErr = %v", err, test.wantErr)
+			if !errorContains(err, test.wantErr) {
+				t.Fatalf("Port() err = %v, wantErr = %q", err, test.wantErr)
 			}
 			if got != test.want {
 				t.Errorf("Port() = %d, want %d", got, test.want)
@@ -64,31 +74,39 @@ func TestEntries(t *testing.T) {
 		desc      string
 		env       string
 		wantCount int
-		wantErr   bool
+		wantErr   string
 	}{{
 		desc:      "valid entries",
-		env:       `[{"name":"A","group":"G1","open":{"mon":["lunch"]},"cost":2}]`,
+		env:       `{"G1":{"A":{"open":{"mon":["lunch"]},"cost":2}}}`,
 		wantCount: 1,
 	}, {
 		desc:    "not set",
 		env:     "",
-		wantErr: true,
+		wantErr: "ENTRIES is not set",
 	}, {
 		desc:    "invalid JSON",
 		env:     `not json`,
-		wantErr: true,
+		wantErr: "ENTRIES is not valid JSON",
 	}, {
-		desc:      "multiple entries",
-		env:       `[{"name":"A","group":"G1","open":{},"cost":1},{"name":"B","group":"G2","open":{},"cost":3}]`,
+		desc:      "multiple entries in multiple groups",
+		env:       `{"G1":{"A":{"open":{},"cost":1}},"G2":{"B":{"open":{},"cost":3}}}`,
 		wantCount: 2,
+	}, {
+		desc:    "group name contains pipe",
+		env:     `{"G|1":{"A":{"open":{},"cost":1}}}`,
+		wantErr: "contains invalid character '|'",
+	}, {
+		desc:    "entry name contains pipe",
+		env:     `{"G1":{"A|B":{"open":{},"cost":1}}}`,
+		wantErr: "contains invalid character '|'",
 	}}
 
 	for _, test := range tests {
 		t.Run(test.desc, func(t *testing.T) {
 			t.Setenv("ENTRIES", test.env)
 			got, err := Entries()
-			if (err != nil) != test.wantErr {
-				t.Fatalf("Entries() err = %v, wantErr = %v", err, test.wantErr)
+			if !errorContains(err, test.wantErr) {
+				t.Fatalf("Entries() err = %v, wantErr = %q", err, test.wantErr)
 			}
 			if len(got) != test.wantCount {
 				t.Errorf("Entries() returned %d entries, want %d", len(got), test.wantCount)
@@ -102,7 +120,7 @@ func TestPeople(t *testing.T) {
 		desc      string
 		env       string
 		wantCount int
-		wantErr   bool
+		wantErr   string
 	}{{
 		desc:      "valid people",
 		env:       `{"alice":"token1","bob":"token2"}`,
@@ -110,19 +128,19 @@ func TestPeople(t *testing.T) {
 	}, {
 		desc:    "not set",
 		env:     "",
-		wantErr: true,
+		wantErr: "PEOPLE is not set",
 	}, {
 		desc:    "invalid JSON",
 		env:     `{bad}`,
-		wantErr: true,
+		wantErr: "PEOPLE is not valid JSON",
 	}}
 
 	for _, test := range tests {
 		t.Run(test.desc, func(t *testing.T) {
 			t.Setenv("PEOPLE", test.env)
 			got, err := People()
-			if (err != nil) != test.wantErr {
-				t.Fatalf("People() err = %v, wantErr = %v", err, test.wantErr)
+			if !errorContains(err, test.wantErr) {
+				t.Fatalf("People() err = %v, wantErr = %q", err, test.wantErr)
 			}
 			if len(got) != test.wantCount {
 				t.Errorf("People() returned %d entries, want %d", len(got), test.wantCount)
@@ -135,18 +153,18 @@ func TestTimezone(t *testing.T) {
 	var tests = []struct {
 		desc    string
 		env     string
-		wantErr bool
+		wantErr string
 	}{{
 		desc: "valid timezone",
 		env:  "America/New_York",
 	}, {
 		desc:    "not set",
 		env:     "",
-		wantErr: true,
+		wantErr: "TIMEZONE is not set",
 	}, {
 		desc:    "invalid timezone",
 		env:     "Not/A/Timezone",
-		wantErr: true,
+		wantErr: "TIMEZONE is not valid",
 	}, {
 		desc: "utc",
 		env:  "UTC",
@@ -156,10 +174,10 @@ func TestTimezone(t *testing.T) {
 		t.Run(test.desc, func(t *testing.T) {
 			t.Setenv("TIMEZONE", test.env)
 			got, err := Timezone()
-			if (err != nil) != test.wantErr {
-				t.Fatalf("Timezone() err = %v, wantErr = %v", err, test.wantErr)
+			if !errorContains(err, test.wantErr) {
+				t.Fatalf("Timezone() err = %v, wantErr = %q", err, test.wantErr)
 			}
-			if !test.wantErr && got == nil {
+			if test.wantErr == "" && got == nil {
 				t.Error("Timezone() returned nil location")
 			}
 		})
@@ -170,43 +188,43 @@ func TestPeriods(t *testing.T) {
 	var tests = []struct {
 		desc    string
 		env     string
-		wantErr bool
+		wantErr string
 	}{{
 		desc: "valid periods",
 		env:  `{"breakfast":[0,10],"lunch":[10,15],"dinner":[15,0]}`,
 	}, {
 		desc:    "not set",
 		env:     "",
-		wantErr: true,
+		wantErr: "PERIODS is not set",
 	}, {
 		desc:    "invalid JSON",
 		env:     `{bad}`,
-		wantErr: true,
+		wantErr: "PERIODS is not valid JSON",
 	}, {
 		desc:    "overlapping periods",
 		env:     `{"breakfast":[0,12],"lunch":[10,15]}`,
-		wantErr: true,
+		wantErr: "overlaps between",
 	}, {
 		desc:    "equal start and end",
 		env:     `{"allday":[5,5]}`,
-		wantErr: true,
+		wantErr: "has equal start and end hour",
 	}, {
 		desc: "non-contiguous periods",
 		env:  `{"morning":[6,12],"evening":[18,22]}`,
 	}, {
 		desc:    "wrap-around overlap",
 		env:     `{"night":[22,6],"early":[4,10]}`,
-		wantErr: true,
+		wantErr: "overlaps between",
 	}}
 
 	for _, test := range tests {
 		t.Run(test.desc, func(t *testing.T) {
 			t.Setenv("PERIODS", test.env)
 			got, err := Periods()
-			if (err != nil) != test.wantErr {
-				t.Fatalf("Periods() err = %v, wantErr = %v", err, test.wantErr)
+			if !errorContains(err, test.wantErr) {
+				t.Fatalf("Periods() err = %v, wantErr = %q", err, test.wantErr)
 			}
-			if !test.wantErr && got == nil {
+			if test.wantErr == "" && got == nil {
 				t.Error("Periods() returned nil")
 			}
 		})
@@ -347,7 +365,7 @@ func TestGroupOrder(t *testing.T) {
 		desc      string
 		env       string
 		wantCount int
-		wantErr   bool
+		wantErr   string
 	}{{
 		desc:      "not set returns nil",
 		env:       "",
@@ -367,15 +385,15 @@ func TestGroupOrder(t *testing.T) {
 	}, {
 		desc:    "invalid JSON",
 		env:     `not json`,
-		wantErr: true,
+		wantErr: "GROUP_ORDER is not valid JSON",
 	}}
 
 	for _, test := range tests {
 		t.Run(test.desc, func(t *testing.T) {
 			t.Setenv("GROUP_ORDER", test.env)
 			got, err := GroupOrder()
-			if (err != nil) != test.wantErr {
-				t.Fatalf("GroupOrder() err = %v, wantErr = %v", err, test.wantErr)
+			if !errorContains(err, test.wantErr) {
+				t.Fatalf("GroupOrder() err = %v, wantErr = %q", err, test.wantErr)
 			}
 			if len(got) != test.wantCount {
 				t.Errorf("GroupOrder() returned %d entries, want %d", len(got), test.wantCount)

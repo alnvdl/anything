@@ -47,7 +47,7 @@ func (a *App) PeriodTallyWeekday(period string) time.Weekday {
 }
 
 // Votes returns the current votes map for testing.
-func (a *App) Votes() map[string]map[string]string {
+func (a *App) Votes() map[string]PersonVote {
 	a.mu.RLock()
 	defer a.mu.RUnlock()
 	return a.votes

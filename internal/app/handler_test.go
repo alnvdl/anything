@@ -21,7 +21,7 @@ func TestHandleVote(t *testing.T) {
 		desc:       "valid token",
 		token:      "tokenA",
 		wantStatus: http.StatusOK,
-		wantBody:   []string{"Anything", "alice", "Pizza Place", "Burger Joint", "Sushi Bar", "Taco Stand"},
+		wantBody:   []string{"Anything", "alice", "Pizza Place", "Burger Joint", "Sushi Bar", "Taco Stand", "Downtown|Pizza Place", "Uptown|Sushi Bar"},
 	}, {
 		desc:       "invalid token",
 		token:      "bad",
@@ -55,7 +55,7 @@ func TestHandleVote(t *testing.T) {
 func TestHandleVoteShowsCurrentVotes(t *testing.T) {
 	a := newTestApp(t)
 	a.UpdateVotes("alice", map[string]string{
-		"Pizza Place": "strong-yes",
+		"Downtown|Pizza Place": "strong-yes",
 	})
 
 	req := httptest.NewRequest("GET", "/?token=tokenA", nil)
@@ -147,8 +147,8 @@ func TestHandleTallyPost(t *testing.T) {
 	})
 
 	form := url.Values{}
-	form.Set("Pizza Place", "strong-yes")
-	form.Set("Burger Joint", "no")
+	form.Set("Downtown|Pizza Place", "strong-yes")
+	form.Set("Downtown|Burger Joint", "no")
 
 	req := httptest.NewRequest("POST", "/votes?token=tokenA", strings.NewReader(form.Encode()))
 	req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
@@ -166,11 +166,11 @@ func TestHandleTallyPost(t *testing.T) {
 
 	// Verify votes were stored.
 	aliceVotes := a.Votes()["alice"]
-	if aliceVotes["Pizza Place"] != "strong-yes" {
-		t.Errorf("alice Pizza Place vote = %q, want strong-yes", aliceVotes["Pizza Place"])
+	if aliceVotes["Downtown"]["Pizza Place"] != "strong-yes" {
+		t.Errorf("alice Pizza Place vote = %q, want strong-yes", aliceVotes["Downtown"]["Pizza Place"])
 	}
-	if aliceVotes["Burger Joint"] != "no" {
-		t.Errorf("alice Burger Joint vote = %q, want no", aliceVotes["Burger Joint"])
+	if aliceVotes["Downtown"]["Burger Joint"] != "no" {
+		t.Errorf("alice Burger Joint vote = %q, want no", aliceVotes["Downtown"]["Burger Joint"])
 	}
 }
 

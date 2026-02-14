@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"os"
 	"strconv"
+	"strings"
 	"time"
 
 	"github.com/alnvdl/anything/internal/app"
@@ -62,15 +63,41 @@ func Port() (int, error) {
 	return port, nil
 }
 
+// entryConfig holds the JSON-serializable configuration for an entry.
+type entryConfig struct {
+	Cost int                 `json:"cost"`
+	Open map[string][]string `json:"open"`
+}
+
+// entriesConfig maps group names to entry names to entry configurations.
+type entriesConfig map[string]map[string]entryConfig
+
 // Entries reads and validates the ENTRIES environment variable.
 func Entries() ([]app.Entry, error) {
 	s := os.Getenv("ENTRIES")
 	if s == "" {
 		return nil, fmt.Errorf("ENTRIES is not set")
 	}
-	var entries []app.Entry
-	if err := json.Unmarshal([]byte(s), &entries); err != nil {
+	var config entriesConfig
+	if err := json.Unmarshal([]byte(s), &config); err != nil {
 		return nil, fmt.Errorf("ENTRIES is not valid JSON: %w", err)
+	}
+	var entries []app.Entry
+	for group, groupEntries := range config {
+		if strings.Contains(group, "|") {
+			return nil, fmt.Errorf("ENTRIES: group name %q contains invalid character '|'", group)
+		}
+		for name, cfg := range groupEntries {
+			if strings.Contains(name, "|") {
+				return nil, fmt.Errorf("ENTRIES: entry name %q contains invalid character '|'", name)
+			}
+			entries = append(entries, app.Entry{
+				Name:  name,
+				Group: group,
+				Cost:  cfg.Cost,
+				Open:  cfg.Open,
+			})
+		}
 	}
 	return entries, nil
 }
