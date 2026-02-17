@@ -81,3 +81,8 @@ func (a *App) GroupOrder() []string {
 func SortGroupNames(names []string, groupOrder []string) {
 	sortGroupNames(names, groupOrder)
 }
+
+// WeekdayForShort exposes weekdayForShort for testing.
+func WeekdayForShort(short string) (time.Weekday, bool) {
+	return weekdayForShort(short)
+}

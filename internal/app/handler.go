@@ -55,17 +55,32 @@ func (a *App) handleTallyGet(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	wd := a.periodTallyWeekday(period)
+	var wd time.Weekday
+	if wdParam := r.URL.Query().Get("weekday"); wdParam != "" {
+		var ok bool
+		wd, ok = weekdayForShort(wdParam)
+		if !ok {
+			http.Error(w, "Bad Request: invalid weekday", http.StatusBadRequest)
+			return
+		}
+	} else {
+		wd = a.periodTallyWeekday(period)
+	}
+
 	groups := a.tallyData(wd, period)
+	prevWd := (wd + 6) % 7
+	nextWd := (wd + 1) % 7
 
 	data := pageData{
-		Title:   "Anything",
-		Token:   token,
-		Person:  person,
-		Period:  period,
-		Weekday: weekdays[wd].Full,
-		Periods: a.periodList,
-		Groups:  groups,
+		Title:            "Anything",
+		Token:            token,
+		Person:           person,
+		Period:           period,
+		Weekday:          weekdays[wd].Full,
+		PrevWeekdayShort: weekdays[prevWd].Short,
+		NextWeekdayShort: weekdays[nextWd].Short,
+		Periods:          a.periodList,
+		Groups:           groups,
 	}
 
 	w.Header().Set("Content-Type", "text/html; charset=utf-8")
@@ -105,16 +120,21 @@ func (a *App) handleTallyPost(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	groups := a.tallyData(now.Weekday(), period)
+	wd := now.Weekday()
+	groups := a.tallyData(wd, period)
+	prevWd := (wd + 6) % 7
+	nextWd := (wd + 1) % 7
 
 	data := pageData{
-		Title:   "Anything",
-		Token:   token,
-		Person:  person,
-		Period:  period,
-		Weekday: weekdays[now.Weekday()].Full,
-		Periods: a.periodList,
-		Groups:  groups,
+		Title:            "Anything",
+		Token:            token,
+		Person:           person,
+		Period:           period,
+		Weekday:          weekdays[wd].Full,
+		PrevWeekdayShort: weekdays[prevWd].Short,
+		NextWeekdayShort: weekdays[nextWd].Short,
+		Periods:          a.periodList,
+		Groups:           groups,
 	}
 
 	w.Header().Set("Content-Type", "text/html; charset=utf-8")

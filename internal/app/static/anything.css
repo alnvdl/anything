@@ -212,3 +212,22 @@ h1>small {
     text-align: left;
     font-weight: 700;
 }
+
+.day-nav {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    width: 100%;
+    font-size: 1.1rem;
+}
+
+.day-nav-arrow {
+    text-decoration: none;
+    font-size: 1.4rem;
+    padding: 0 1em;
+}
+
+.day-nav-label {
+    min-width: 7em;
+    text-align: center;
+}

@@ -106,14 +106,16 @@ type Params struct {
 
 // pageData holds template data for rendering pages.
 type pageData struct {
-	Title    string
-	Token    string
-	Person   string
-	Period   string
-	Weekday  string
-	Periods  []string
-	Weekdays []weekdayInfo
-	Groups   []groupData
+	Title            string
+	Token            string
+	Person           string
+	Period           string
+	Weekday          string
+	PrevWeekdayShort string
+	NextWeekdayShort string
+	Periods          []string
+	Weekdays         []weekdayInfo
+	Groups           []groupData
 }
 
 // groupData holds a group of entries for template rendering.
@@ -564,6 +566,16 @@ func periodForHour(periods Periods, hour int) string {
 		}
 	}
 	return ""
+}
+
+// weekdayForShort returns the time.Weekday for a short weekday name.
+func weekdayForShort(short string) (time.Weekday, bool) {
+	for wd, info := range weekdays {
+		if info.Short == short {
+			return wd, true
+		}
+	}
+	return 0, false
 }
 
 // sortGroupNames sorts group names in place: groups present in groupOrder come

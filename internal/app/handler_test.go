@@ -83,6 +83,7 @@ func TestHandleTallyGet(t *testing.T) {
 		desc       string
 		token      string
 		period     string
+		weekday    string
 		wantStatus int
 		wantBody   []string
 	}{{
@@ -90,19 +91,46 @@ func TestHandleTallyGet(t *testing.T) {
 		token:      "tokenA",
 		period:     "lunch",
 		wantStatus: http.StatusOK,
-		wantBody:   []string{"Anything", "for lunch on", "Monday", "Downtown", "Uptown"},
+		wantBody:   []string{"Anything", "for lunch on", "Monday", "Downtown", "Uptown", "weekday=sun", "weekday=tue"},
 	}, {
 		desc:       "past period shows next day",
 		token:      "tokenA",
 		period:     "breakfast",
 		wantStatus: http.StatusOK,
-		wantBody:   []string{"Anything", "for breakfast on", "Tuesday"},
+		wantBody:   []string{"Anything", "for breakfast on", "Tuesday", "weekday=mon", "weekday=wed"},
 	}, {
 		desc:       "future period shows today",
 		token:      "tokenA",
 		period:     "dinner",
 		wantStatus: http.StatusOK,
-		wantBody:   []string{"Anything", "for dinner on", "Monday"},
+		wantBody:   []string{"Anything", "for dinner on", "Monday", "weekday=sun", "weekday=tue"},
+	}, {
+		desc:       "explicit weekday overrides default",
+		token:      "tokenA",
+		period:     "lunch",
+		weekday:    "fri",
+		wantStatus: http.StatusOK,
+		wantBody:   []string{"Anything", "for lunch on", "Friday", "weekday=thu", "weekday=sat"},
+	}, {
+		desc:       "explicit weekday sunday wraps to saturday and monday",
+		token:      "tokenA",
+		period:     "lunch",
+		weekday:    "sun",
+		wantStatus: http.StatusOK,
+		wantBody:   []string{"Sunday", "weekday=sat", "weekday=mon"},
+	}, {
+		desc:       "explicit weekday saturday wraps to friday and sunday",
+		token:      "tokenA",
+		period:     "dinner",
+		weekday:    "sat",
+		wantStatus: http.StatusOK,
+		wantBody:   []string{"Saturday", "weekday=fri", "weekday=sun"},
+	}, {
+		desc:       "invalid weekday",
+		token:      "tokenA",
+		period:     "lunch",
+		weekday:    "xyz",
+		wantStatus: http.StatusBadRequest,
 	}, {
 		desc:       "invalid token",
 		token:      "bad",
@@ -122,7 +150,11 @@ func TestHandleTallyGet(t *testing.T) {
 
 	for _, test := range tests {
 		t.Run(test.desc, func(t *testing.T) {
-			req := httptest.NewRequest("GET", "/votes?period="+test.period+"&token="+test.token, nil)
+			u := "/votes?period=" + test.period + "&token=" + test.token
+			if test.weekday != "" {
+				u += "&weekday=" + test.weekday
+			}
+			req := httptest.NewRequest("GET", u, nil)
 			w := httptest.NewRecorder()
 			a.ServeHTTP(w, req)
 
@@ -164,6 +196,13 @@ func TestHandleTallyPost(t *testing.T) {
 	body := w.Body.String()
 	if !strings.Contains(body, "Anything") {
 		t.Error("body does not contain Anything title")
+	}
+
+	// Verify day navigation links appear.
+	for _, s := range []string{"weekday=sun", "weekday=tue"} {
+		if !strings.Contains(body, s) {
+			t.Errorf("body does not contain %q", s)
+		}
 	}
 
 	// Verify votes were stored.
