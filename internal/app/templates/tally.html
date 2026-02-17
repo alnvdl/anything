@@ -1,9 +1,9 @@
 {{define "page"}}
 {{template "nav" .}}
 <div class="day-nav">
-    <a class="day-nav-arrow" href="/votes?period={{.Period}}&amp;weekday={{.PrevWeekdayShort}}&amp;token={{.Token}}">🢐</a>
+    <a class="day-nav-arrow" href="/votes?period={{.Period}}&amp;weekday={{.PrevWeekdayShort}}&amp;token={{.Token}}">⏴</a>
     <span class="day-nav-label">{{.Weekday}}</span>
-    <a class="day-nav-arrow" href="/votes?period={{.Period}}&amp;weekday={{.NextWeekdayShort}}&amp;token={{.Token}}">🢒</a>
+    <a class="day-nav-arrow" href="/votes?period={{.Period}}&amp;weekday={{.NextWeekdayShort}}&amp;token={{.Token}}">⏵</a>
 </div>
 {{template "entrylist" .}}
 {{end}}
