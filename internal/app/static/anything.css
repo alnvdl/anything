@@ -77,9 +77,9 @@ fieldset.radio-group input[type="radio"]+label {
 }
 
 .header {
-	display: flex;
-	gap: 8px;
-	align-items: baseline;
+    display: flex;
+    gap: 8px;
+    align-items: baseline;
 }
 
 .logo {
@@ -170,7 +170,7 @@ h1>small {
     width: 100%;
 }
 
-.edit-entry-header > * {
+.edit-entry-header>* {
     font-weight: 700;
 }
 
@@ -184,7 +184,7 @@ h1>small {
     flex-shrink: 0;
 }
 
-.edit-group > .add-entry,
+.edit-group>.add-entry,
 #add-group {
     font-weight: 700;
     font-size: calc(var(--lwa-font-size) * 1.1);
@@ -230,4 +230,12 @@ h1>small {
 .day-nav-label {
     min-width: 7em;
     text-align: center;
+}
+
+/* Adaptations for mobile */
+@media only screen and (any-hover: none) and (pointer: coarse),
+only screen and (max-width: 1280px) {
+    input[type="radio"]+label {
+        font-size: var(--lwa-font-size-mobile);
+    }
 }
