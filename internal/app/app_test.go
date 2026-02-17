@@ -371,15 +371,16 @@ func TestSortGroupNames(t *testing.T) {
 
 func TestVotePageDataWithGroupOrder(t *testing.T) {
 	a, err := app.New(app.Params{
-		Entries:    testEntries(),
-		People:     testPeople(),
-		Timezone:   time.UTC,
-		Periods:    testPeriods(),
-		GroupOrder: []string{"Uptown", "Downtown"},
+		Entries:  testEntries(),
+		People:   testPeople(),
+		Timezone: time.UTC,
+		Periods:  testPeriods(),
 	})
 	if err != nil {
 		t.Fatal(err)
 	}
+
+	a.UpdateGroupOrder([]string{"Uptown", "Downtown"})
 
 	groups := a.VotePageData("alice")
 
@@ -396,15 +397,16 @@ func TestVotePageDataWithGroupOrder(t *testing.T) {
 
 func TestTallyDataWithGroupOrder(t *testing.T) {
 	a, err := app.New(app.Params{
-		Entries:    testEntries(),
-		People:     testPeople(),
-		Timezone:   time.UTC,
-		Periods:    testPeriods(),
-		GroupOrder: []string{"Uptown", "Downtown"},
+		Entries:  testEntries(),
+		People:   testPeople(),
+		Timezone: time.UTC,
+		Periods:  testPeriods(),
 	})
 	if err != nil {
 		t.Fatal(err)
 	}
+
+	a.UpdateGroupOrder([]string{"Uptown", "Downtown"})
 
 	groups := a.TallyData(time.Monday, "lunch")
 
@@ -800,6 +802,7 @@ func TestSave(t *testing.T) {
 	a.UpdateVotes("bob", map[string]string{
 		"Uptown|Sushi Bar": "yes",
 	})
+	a.UpdateGroupOrder([]string{"Uptown", "Downtown"})
 
 	var buf bytes.Buffer
 	if err := a.Save(&buf); err != nil {
@@ -807,7 +810,7 @@ func TestSave(t *testing.T) {
 	}
 
 	saved := buf.String()
-	for _, want := range []string{"alice", "bob", "Downtown", "Uptown", "Pizza Place", "strong-yes", "Burger Joint", "no", "Sushi Bar", "yes"} {
+	for _, want := range []string{"entries", "votes", "alice", "bob", "Downtown", "Uptown", "Pizza Place", "strong-yes", "Burger Joint", "no", "Sushi Bar", "yes", "groupOrder"} {
 		if !strings.Contains(saved, want) {
 			t.Errorf("saved data does not contain %q", want)
 		}
@@ -822,7 +825,7 @@ func TestLoad(t *testing.T) {
 		wantErr   string
 	}{{
 		desc:  "valid data",
-		input: `{"alice":{"Downtown":{"Pizza Place":"strong-yes","Burger Joint":"no"}},"bob":{"Uptown":{"Sushi Bar":"yes"}}}`,
+		input: `{"entries":[{"Name":"A","Group":"G","Open":{},"Cost":1}],"votes":{"alice":{"Downtown":{"Pizza Place":"strong-yes","Burger Joint":"no"}},"bob":{"Uptown":{"Sushi Bar":"yes"}}},"groupOrder":["Uptown","Downtown"]}`,
 		wantVotes: map[string]app.PersonVote{
 			"alice": {"Downtown": app.GroupVote{"Pizza Place": "strong-yes", "Burger Joint": "no"}},
 			"bob":   {"Uptown": app.GroupVote{"Sushi Bar": "yes"}},
@@ -838,7 +841,7 @@ func TestLoad(t *testing.T) {
 	}, {
 		desc:    "invalid JSON",
 		input:   "{not valid json",
-		wantErr: "cannot deserialize votes",
+		wantErr: "cannot deserialize data",
 	}}
 
 	for _, test := range tests {
@@ -890,6 +893,7 @@ func TestSaveLoadRoundTrip(t *testing.T) {
 		"Uptown|Sushi Bar":  "yes",
 		"Uptown|Taco Stand": "strong-no",
 	})
+	a.UpdateGroupOrder([]string{"Uptown", "Downtown"})
 
 	// Save.
 	var buf bytes.Buffer
@@ -897,8 +901,15 @@ func TestSaveLoadRoundTrip(t *testing.T) {
 		t.Fatalf("Save() error: %v", err)
 	}
 
-	// Load into a fresh app.
-	a2 := newTestApp(t)
+	// Load into a fresh app with no config entries (simulates file having entries).
+	a2, err := app.New(app.Params{
+		People:   testPeople(),
+		Timezone: time.UTC,
+		Periods:  testPeriods(),
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
 	if err := a2.Load(&buf); err != nil {
 		t.Fatalf("Load() error: %v", err)
 	}
@@ -927,5 +938,177 @@ func TestSaveLoadRoundTrip(t *testing.T) {
 				}
 			}
 		}
+	}
+
+	// Compare entries.
+	origEntries := a.Entries()
+	loadedEntries := a2.Entries()
+	if len(loadedEntries) != len(origEntries) {
+		t.Fatalf("round-trip entries: %d, want %d", len(loadedEntries), len(origEntries))
+	}
+
+	// Compare group order.
+	origOrder := a.GroupOrder()
+	loadedOrder := a2.GroupOrder()
+	if len(loadedOrder) != len(origOrder) {
+		t.Fatalf("round-trip group order: %d, want %d", len(loadedOrder), len(origOrder))
+	}
+	for i, want := range origOrder {
+		if loadedOrder[i] != want {
+			t.Errorf("group order[%d] = %q, want %q", i, loadedOrder[i], want)
+		}
+	}
+}
+
+func TestUpdateEntries(t *testing.T) {
+	var tests = []struct {
+		desc      string
+		entries   []app.Entry
+		wantCount int
+	}{{
+		desc: "single entry",
+		entries: []app.Entry{{
+			Name:  "MyEntry",
+			Group: "MyGroup",
+			Cost:  2,
+			Open:  map[string][]string{"mon": {"lunch", "dinner"}, "tue": {"lunch"}},
+		}},
+		wantCount: 1,
+	}, {
+		desc: "multiple entries",
+		entries: []app.Entry{{
+			Name:  "Entry1",
+			Group: "G1",
+			Cost:  1,
+			Open:  map[string][]string{"mon": {"lunch"}},
+		}, {
+			Name:  "Entry2",
+			Group: "G1",
+			Cost:  3,
+			Open:  map[string][]string{"tue": {"dinner"}},
+		}, {
+			Name:  "Entry3",
+			Group: "G2",
+			Cost:  4,
+			Open:  map[string][]string{"fri": {"lunch", "dinner"}},
+		}},
+		wantCount: 3,
+	}, {
+		desc: "entry with no schedule",
+		entries: []app.Entry{{
+			Name:  "Entry1",
+			Group: "G1",
+			Cost:  1,
+		}},
+		wantCount: 1,
+	}, {
+		desc:      "empty entries",
+		entries:   []app.Entry{},
+		wantCount: 0,
+	}}
+
+	for _, test := range tests {
+		t.Run(test.desc, func(t *testing.T) {
+			a := newTestApp(t)
+			a.UpdateEntries(test.entries)
+
+			entries := a.Entries()
+			if len(entries) != test.wantCount {
+				t.Errorf("UpdateEntries stored %d entries, want %d", len(entries), test.wantCount)
+			}
+		})
+	}
+}
+
+func TestUpdateEntriesReplacesExisting(t *testing.T) {
+	a := newTestApp(t)
+
+	// Initially has testEntries (4 entries).
+	if len(a.Entries()) != 4 {
+		t.Fatalf("expected 4 initial entries, got %d", len(a.Entries()))
+	}
+
+	// Update with fewer entries.
+	a.UpdateEntries([]app.Entry{{
+		Name:  "NewEntry",
+		Group: "NewGroup",
+		Cost:  1,
+		Open:  map[string][]string{"mon": {"lunch"}},
+	}})
+
+	entries := a.Entries()
+	if len(entries) != 1 {
+		t.Fatalf("expected 1 entry after update, got %d", len(entries))
+	}
+	if entries[0].Name != "NewEntry" || entries[0].Group != "NewGroup" {
+		t.Errorf("entry = %q/%q, want NewEntry/NewGroup", entries[0].Name, entries[0].Group)
+	}
+	if entries[0].Cost != 1 {
+		t.Errorf("cost = %d, want 1", entries[0].Cost)
+	}
+}
+
+func TestUpdateEntriesUpdatesVoteValidation(t *testing.T) {
+	a := newTestApp(t)
+
+	// Replace entries with new ones.
+	a.UpdateEntries([]app.Entry{{
+		Name:  "NewEntry",
+		Group: "NewGroup",
+		Cost:  1,
+		Open:  map[string][]string{"mon": {"lunch"}},
+	}})
+
+	// Voting for old entries should fail.
+	a.UpdateVotes("alice", map[string]string{
+		"Downtown|Pizza Place": "yes",
+		"NewGroup|NewEntry":    "strong-yes",
+	})
+
+	votes := a.Votes()["alice"]
+	count := 0
+	for _, gv := range votes {
+		count += len(gv)
+	}
+	if count != 1 {
+		t.Errorf("expected 1 valid vote, got %d", count)
+	}
+	if votes["NewGroup"]["NewEntry"] != "strong-yes" {
+		t.Errorf("NewEntry vote = %q, want strong-yes", votes["NewGroup"]["NewEntry"])
+	}
+}
+
+func TestNewImportsConfigEntries(t *testing.T) {
+	// When no file is loaded (no autosave), entries come from config.
+	a, err := app.New(app.Params{
+		Entries:  testEntries(),
+		People:   testPeople(),
+		Timezone: time.UTC,
+		Periods:  testPeriods(),
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	entries := a.Entries()
+	if len(entries) != 4 {
+		t.Errorf("expected 4 entries from config, got %d", len(entries))
+	}
+}
+
+func TestNewWithNoEntries(t *testing.T) {
+	// App can be created with no entries.
+	a, err := app.New(app.Params{
+		People:   testPeople(),
+		Timezone: time.UTC,
+		Periods:  testPeriods(),
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	entries := a.Entries()
+	if len(entries) != 0 {
+		t.Errorf("expected 0 entries, got %d", len(entries))
 	}
 }

@@ -10,16 +10,16 @@
     <div class="entry">
         <div>{{.Name}}</div>
         <fieldset class="radio-group">
-            <input type="radio" name="{{.Group}}|{{.Name}}" id="{{.Group}}|{{.Name}} strong-no" value="strong-no"{{if eq .CurrentVote "strong-no"}} checked{{end}} />
+            <input type="radio" class="vote" name="{{.Group}}|{{.Name}}" id="{{.Group}}|{{.Name}} strong-no" value="strong-no"{{if eq .CurrentVote "strong-no"}} checked{{end}} />
             <label for="{{.Group}}|{{.Name}} strong-no"><span class="svg-strong-no"></span></label>
 
-            <input type="radio" name="{{.Group}}|{{.Name}}" id="{{.Group}}|{{.Name}} no" value="no"{{if eq .CurrentVote "no"}} checked{{end}} />
+            <input type="radio" class="vote" name="{{.Group}}|{{.Name}}" id="{{.Group}}|{{.Name}} no" value="no"{{if eq .CurrentVote "no"}} checked{{end}} />
             <label for="{{.Group}}|{{.Name}} no"><span class="svg-no"></span></label>
 
-            <input type="radio" name="{{.Group}}|{{.Name}}" id="{{.Group}}|{{.Name}} yes" value="yes"{{if eq .CurrentVote "yes"}} checked{{end}} />
+            <input type="radio" class="vote" name="{{.Group}}|{{.Name}}" id="{{.Group}}|{{.Name}} yes" value="yes"{{if eq .CurrentVote "yes"}} checked{{end}} />
             <label for="{{.Group}}|{{.Name}} yes"><span class="svg-yes"></span></label>
 
-            <input type="radio" name="{{.Group}}|{{.Name}}" id="{{.Group}}|{{.Name}} strong-yes" value="strong-yes"{{if eq .CurrentVote "strong-yes"}} checked{{end}} />
+            <input type="radio" class="vote" name="{{.Group}}|{{.Name}}" id="{{.Group}}|{{.Name}} strong-yes" value="strong-yes"{{if eq .CurrentVote "strong-yes"}} checked{{end}} />
             <label for="{{.Group}}|{{.Name}} strong-yes"><span class="svg-strong-yes"></span></label>
         </fieldset>
     </div>

@@ -308,7 +308,7 @@ func TestPersistInterval(t *testing.T) {
 	}{{
 		desc: "default when not set",
 		env:  "",
-		want: 15 * time.Minute,
+		want: 5 * time.Minute,
 	}, {
 		desc: "custom interval",
 		env:  "30s",
@@ -316,7 +316,7 @@ func TestPersistInterval(t *testing.T) {
 	}, {
 		desc: "invalid falls back to default",
 		env:  "notaduration",
-		want: 15 * time.Minute,
+		want: 5 * time.Minute,
 	}}
 
 	for _, test := range tests {
@@ -355,48 +355,6 @@ func TestHealthCheckInterval(t *testing.T) {
 			got := HealthCheckInterval()
 			if got != test.want {
 				t.Errorf("HealthCheckInterval() = %v, want %v", got, test.want)
-			}
-		})
-	}
-}
-
-func TestGroupOrder(t *testing.T) {
-	var tests = []struct {
-		desc      string
-		env       string
-		wantCount int
-		wantErr   string
-	}{{
-		desc:      "not set returns nil",
-		env:       "",
-		wantCount: 0,
-	}, {
-		desc:      "valid group order",
-		env:       `["Uptown","Downtown"]`,
-		wantCount: 2,
-	}, {
-		desc:      "single group",
-		env:       `["Downtown"]`,
-		wantCount: 1,
-	}, {
-		desc:      "empty array",
-		env:       `[]`,
-		wantCount: 0,
-	}, {
-		desc:    "invalid JSON",
-		env:     `not json`,
-		wantErr: "GROUP_ORDER is not valid JSON",
-	}}
-
-	for _, test := range tests {
-		t.Run(test.desc, func(t *testing.T) {
-			t.Setenv("GROUP_ORDER", test.env)
-			got, err := GroupOrder()
-			if !errorContains(err, test.wantErr) {
-				t.Fatalf("GroupOrder() err = %v, wantErr = %q", err, test.wantErr)
-			}
-			if len(got) != test.wantCount {
-				t.Errorf("GroupOrder() returned %d entries, want %d", len(got), test.wantCount)
 			}
 		})
 	}

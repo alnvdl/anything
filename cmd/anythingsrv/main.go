@@ -71,18 +71,11 @@ func main() {
 		os.Exit(1)
 	}
 
-	groupOrder, err := GroupOrder()
-	if err != nil {
-		slog.Error("failed to read GROUP_ORDER", "error", err)
-		os.Exit(1)
-	}
-
 	application, err := app.New(app.Params{
-		Entries:    entries,
-		People:     people,
-		Timezone:   tz,
-		Periods:    periods,
-		GroupOrder: groupOrder,
+		Entries:  entries,
+		People:   people,
+		Timezone: tz,
+		Periods:  periods,
 		AutoSaveParams: autosave.Params{
 			FilePath: DBPath(),
 			Interval: PersistInterval(),

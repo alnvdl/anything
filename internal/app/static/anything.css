@@ -6,8 +6,7 @@ input[type="radio"] {
 input[type="radio"]+label {
     background: var(--lwa-button-color);
     color: color-mix(in hsl, var(--lwa-font-color), white 50%);
-    border: 2px solid color-mix(in hsl, var(--lwa-button-color), black 20%);
-    box-shadow: 1px 1px 1px rgba(0, 0, 0, 0.2);
+    border: 1px solid color-mix(in hsl, var(--lwa-button-color), black 20%);
     padding: 8px;
     display: inline-flex;
     align-items: center;
@@ -20,9 +19,13 @@ input[type="radio"]+label {
     user-select: none;
 }
 
+input[type="radio"].vote+label {
+    border: 2px solid color-mix(in hsl, var(--lwa-button-color), black 20%);
+    box-shadow: 1px 1px 1px rgba(0, 0, 0, 0.2);
+}
+
 input[type="radio"]+label:hover {
     background-color: color-mix(in hsl, var(--lwa-button-color), black 8%);
-    border-width: 2px;
 }
 
 input[type="radio"]:checked+label {
@@ -31,25 +34,25 @@ input[type="radio"]:checked+label {
 }
 
 /* Apply colors only when checked */
-input[type="radio"][value="strong-no"]:checked+label {
+input[type="radio"][value="strong-no"].vote:checked+label {
     background: color-mix(in hsl, var(--lwa-red), black 35%);
     color: hsl(from var(--lwa-red) h calc(s + 70) calc(l - 70));
     border: 2px solid hsl(from var(--lwa-red) h calc(s + 70) calc(l - 70));
 }
 
-input[type="radio"][value="no"]:checked+label {
+input[type="radio"][value="no"].vote:checked+label {
     background: var(--lwa-red);
     color: hsl(from var(--lwa-red) h calc(s + 70) calc(l - 70));
     border: 2px solid hsl(from var(--lwa-red) h calc(s + 70) calc(l - 70));
 }
 
-input[type="radio"][value="yes"]:checked+label {
+input[type="radio"][value="yes"].vote:checked+label {
     background: var(--lwa-green);
     color: hsl(from var(--lwa-green) h calc(s + 70) calc(l - 70));
     border: 2px solid hsl(from var(--lwa-green) h calc(s + 70) calc(l - 70));
 }
 
-input[type="radio"][value="strong-yes"]:checked+label {
+input[type="radio"][value="strong-yes"].vote:checked+label {
     background: color-mix(in hsl, var(--lwa-green), black 35%);
     color: hsl(from var(--lwa-green) h calc(s + 70) calc(l - 70));
     border: 2px solid hsl(from var(--lwa-green) h calc(s + 70) calc(l - 70));
@@ -129,4 +132,83 @@ h1>small {
     font-size: 0.6em;
     color: var(--lwa-font-color);
     font-weight: normal;
+}
+
+.edit-group {
+    margin-bottom: 24px;
+}
+
+.edit-group-header {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-top: 24px;
+}
+
+.edit-group-header input[type="text"] {
+    font-size: 1.1rem;
+    font-weight: 700;
+    flex-grow: 1;
+}
+
+.edit-group-header button {
+    font-size: 1.1rem;
+    align-self: stretch;
+    font-weight: 700;
+}
+
+.edit-entry {
+    padding-left: 16px;
+    margin-top: 24px;
+    border-left: 3px solid var(--lwa-border-color);
+}
+
+.edit-entry-header {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    width: 100%;
+}
+
+.edit-entry-header > * {
+    font-weight: 700;
+}
+
+.edit-entry-header input[type="text"] {
+    flex-grow: 1;
+    min-width: 0;
+}
+
+.edit-entry-header .radio-group,
+.edit-entry-header button {
+    flex-shrink: 0;
+}
+
+.edit-group > .add-entry,
+#add-group {
+    font-weight: 700;
+    font-size: calc(var(--lwa-font-size) * 1.1);
+    display: block;
+    width: 80%;
+    max-width: 320px;
+    margin: 32px auto 0px auto;
+}
+
+.edit-schedule-table {
+    margin-top: 8px;
+    margin-bottom: 8px;
+    width: 100%;
+    font-size: var(--lwa-font-size);
+}
+
+.edit-schedule-table th,
+.edit-schedule-table td {
+    padding: 4px 8px;
+    text-align: center;
+}
+
+.edit-schedule-table td:first-child,
+.edit-schedule-table th:first-child {
+    text-align: left;
+    font-weight: 700;
 }

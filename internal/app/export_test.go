@@ -20,7 +20,7 @@ func (a *App) UpdateVotes(person string, votes map[string]string) {
 
 // VotePageData exposes votePageData for testing.
 func (a *App) VotePageData(person string) []GroupData {
-	return a.votePageData(person)
+	return a.entriesData(person)
 }
 
 // TallyData exposes tallyData for testing.
@@ -33,8 +33,8 @@ func PeriodForHour(periods Periods, hour int) string {
 	return periodForHour(periods, hour)
 }
 
-var WeekdayFullNames = weekdayFullNames
-var WeekdayShortNames = weekdayShortNames
+// Weekdays exposes weekdays for testing.
+var Weekdays = weekdays
 
 // SetNowFunc overrides the time function used by the App for testing.
 func (a *App) SetNowFunc(f func() time.Time) {
@@ -50,7 +50,31 @@ func (a *App) PeriodTallyWeekday(period string) time.Weekday {
 func (a *App) Votes() map[string]PersonVote {
 	a.mu.RLock()
 	defer a.mu.RUnlock()
-	return a.votes
+	return a.db.Votes
+}
+
+// Entries returns the current entries for testing.
+func (a *App) Entries() []Entry {
+	a.mu.RLock()
+	defer a.mu.RUnlock()
+	return a.db.Entries
+}
+
+// UpdateEntries exposes updateEntries for testing.
+func (a *App) UpdateEntries(entries []Entry) {
+	a.updateEntries(entries)
+}
+
+// UpdateGroupOrder exposes updateGroupOrder for testing.
+func (a *App) UpdateGroupOrder(order []string) {
+	a.updateGroupOrder(order)
+}
+
+// GroupOrder returns the current group order for testing.
+func (a *App) GroupOrder() []string {
+	a.mu.RLock()
+	defer a.mu.RUnlock()
+	return a.db.GroupOrder
 }
 
 // SortGroupNames exposes sortGroupNames for testing.

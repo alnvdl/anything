@@ -1,0 +1,218 @@
+{{define "page"}}
+{{template "nav" .}}
+<form id="entries-form" method="POST" action="/entries?token={{.Token}}">
+    <div id="groups-container">
+    {{range $gi, $g := .Groups}}
+    <div class="edit-group">
+        <div class="edit-group-header">
+            <input type="text" class="group-name" value="{{$g.Name}}" />
+            <button type="button" class="blue move-group-up">↑</button>
+            <button type="button" class="blue move-group-down">↓</button>
+            <button type="button" class="red remove-group">Remove</button>
+        </div>
+        {{range $ei, $e := $g.Entries}}
+        <div class="edit-entry">
+            <div class="edit-entry-header">
+                <input type="text" class="entry-name" value="{{$e.Name}}" />
+                <fieldset class="radio-group">
+                    <input type="radio" class="entry-cost" name="_cost_{{$gi}}_{{$ei}}" id="_cost_{{$gi}}_{{$ei}}_1" value="1" {{if eq $e.Cost 1}}checked{{end}} />
+                    <label for="_cost_{{$gi}}_{{$ei}}_1">$</label>
+                    <input type="radio" class="entry-cost" name="_cost_{{$gi}}_{{$ei}}" id="_cost_{{$gi}}_{{$ei}}_2" value="2" {{if eq $e.Cost 2}}checked{{end}} />
+                    <label for="_cost_{{$gi}}_{{$ei}}_2">$$</label>
+                    <input type="radio" class="entry-cost" name="_cost_{{$gi}}_{{$ei}}" id="_cost_{{$gi}}_{{$ei}}_3" value="3" {{if eq $e.Cost 3}}checked{{end}} />
+                    <label for="_cost_{{$gi}}_{{$ei}}_3">$$$</label>
+                    <input type="radio" class="entry-cost" name="_cost_{{$gi}}_{{$ei}}" id="_cost_{{$gi}}_{{$ei}}_4" value="4" {{if eq $e.Cost 4}}checked{{end}} />
+                    <label for="_cost_{{$gi}}_{{$ei}}_4">$$$$</label>
+                </fieldset>
+                <button type="button" class="red remove-entry">Remove</button>
+            </div>
+            <table class="edit-schedule-table">
+                <tr>
+                    <th></th>
+                    {{range $.Periods}}<th>{{.}}</th>{{end}}
+                </tr>
+                {{range $wd := $.Weekdays}}
+                <tr>
+                    <td>{{$wd.Short}}</td>
+                    {{range $p := $.Periods}}
+                    <td><input type="checkbox" class="schedule-check" data-day="{{$wd.Short}}" data-period="{{$p}}" {{if contains (index $e.Open $wd.Short) $p}}checked{{end}} /></td>
+                    {{end}}
+                </tr>
+                {{end}}
+            </table>
+        </div>
+        {{end}}
+        <button type="button" class="blue add-entry">Add entry</button>
+        <hr />
+    </div>
+    {{end}}
+    </div>
+    <button type="button" class="blue" id="add-group">Add group</button>
+    <hr />
+    <button type="submit" class="blue">Save</button>
+</form>
+{{end}}
+
+{{define "scripts"}}
+<script>
+    var periods = [{{range $i, $p := .Periods}}{{if $i}},{{end}}"{{$p}}"{{end}}];
+    var weekdays = [{{range $i, $wd := .Weekdays}}{{if $i}},{{end}}{"short":"{{$wd.Short}}","full":"{{$wd.Full}}"}{{end}}];
+
+    var entryCounter = 1000;
+
+    function createScheduleHTML() {
+        var html = '<table class="edit-schedule-table"><tr><th></th>';
+        for (var i = 0; i < periods.length; i++) {
+            html += "<th>" + periods[i] + "</th>";
+        }
+        html += "</tr>";
+        for (var w = 0; w < weekdays.length; w++) {
+            html += "<tr><td>" + weekdays[w].short + "</td>";
+            for (var p = 0; p < periods.length; p++) {
+                html += '<td><input type="checkbox" class="schedule-check" data-day="' + weekdays[w].short + '" data-period="' + periods[p] + '" /></td>';
+            }
+            html += "</tr>";
+        }
+        html += "</table>";
+        return html;
+    }
+
+    function createEntryHTML() {
+        entryCounter++;
+        var name = "_cost_n_" + entryCounter;
+        return '<div class="edit-entry">' +
+            '<div class="edit-entry-header">' +
+            '<input type="text" class="entry-name" value="" placeholder="Entry name" />' +
+            '<fieldset class="radio-group">' +
+            '<input type="radio" class="entry-cost" name="' + name + '" id="' + name + '_1" value="1" checked />' +
+            '<label for="' + name + '_1">$</label>' +
+            '<input type="radio" class="entry-cost" name="' + name + '" id="' + name + '_2" value="2" />' +
+            '<label for="' + name + '_2">$$</label>' +
+            '<input type="radio" class="entry-cost" name="' + name + '" id="' + name + '_3" value="3" />' +
+            '<label for="' + name + '_3">$$$</label>' +
+            '<input type="radio" class="entry-cost" name="' + name + '" id="' + name + '_4" value="4" />' +
+            '<label for="' + name + '_4">$$$$</label>' +
+            "</fieldset>" +
+            '<button type="button" class="red remove-entry">Remove</button>' +
+            "</div>" +
+            createScheduleHTML() +
+            "</div>";
+    }
+
+    function createGroupHTML() {
+        return '<div class="edit-group">' +
+            '<div class="edit-group-header">' +
+            '<input type="text" class="group-name" value="" placeholder="Group name" />' +
+            '<button type="button" class="blue move-group-up">↑</button>' +
+            '<button type="button" class="blue move-group-down">↓</button>' +
+            '<button type="button" class="red remove-group">Remove</button>' +
+            "</div>" +
+            '<button type="button" class="blue add-entry">Add entry</button>' +
+            '<hr />' +
+            "</div>";
+    }
+
+    document.addEventListener("DOMContentLoaded", function() {
+        // Event delegation for add/remove buttons.
+        document.addEventListener("click", function(e) {
+            if (e.target.classList.contains("add-entry")) {
+                e.target.insertAdjacentHTML("beforebegin", createEntryHTML());
+            }
+            if (e.target.classList.contains("remove-entry")) {
+                if (confirm("Remove this entry?")) {
+                    e.target.closest(".edit-entry").remove();
+                }
+            }
+            if (e.target.classList.contains("remove-group")) {
+                if (confirm("Remove this group and all its entries?")) {
+                    e.target.closest(".edit-group").remove();
+                }
+            }
+            if (e.target.classList.contains("move-group-up")) {
+                var group = e.target.closest(".edit-group");
+                var prev = group.previousElementSibling;
+                if (prev && prev.classList.contains("edit-group")) {
+                    group.parentNode.insertBefore(group, prev);
+                }
+            }
+            if (e.target.classList.contains("move-group-down")) {
+                var group = e.target.closest(".edit-group");
+                var next = group.nextElementSibling;
+                if (next && next.classList.contains("edit-group")) {
+                    group.parentNode.insertBefore(next, group);
+                }
+            }
+        });
+
+        document.getElementById("add-group").addEventListener("click", function() {
+            document.getElementById("groups-container").insertAdjacentHTML("beforeend", createGroupHTML());
+        });
+
+        // Form submission: build proper format and submit.
+        document.getElementById("entries-form").addEventListener("submit", function(e) {
+            e.preventDefault();
+
+            // Remove any previously added hidden inputs.
+            this.querySelectorAll(".hidden-entry").forEach(function(el) { el.remove(); });
+
+            var groups = this.querySelectorAll(".edit-group");
+            for (var gi = 0; gi < groups.length; gi++) {
+                var group = groups[gi];
+                var groupName = group.querySelector(".group-name").value.trim();
+                if (!groupName) continue;
+
+                var entries = group.querySelectorAll(".edit-entry");
+                for (var ei = 0; ei < entries.length; ei++) {
+                    var entry = entries[ei];
+                    var entryName = entry.querySelector(".entry-name").value.trim();
+                    if (!entryName) continue;
+
+                    var costRadio = entry.querySelector(".entry-cost:checked");
+                    var cost = costRadio ? costRadio.value : "1";
+
+                    var checks = entry.querySelectorAll(".schedule-check:checked");
+                    var schedule = {};
+                    for (var ci = 0; ci < checks.length; ci++) {
+                        var day = checks[ci].dataset.day;
+                        var period = checks[ci].dataset.period;
+                        if (!schedule[day]) schedule[day] = [];
+                        schedule[day].push(period);
+                    }
+
+                    var value = cost;
+                    for (var day in schedule) {
+                        value += ";" + day + ":" + schedule[day].join(",");
+                    }
+
+                    var hidden = document.createElement("input");
+                    hidden.type = "hidden";
+                    hidden.name = groupName + "|" + entryName;
+                    hidden.value = value;
+                    hidden.classList.add("hidden-entry");
+                    this.appendChild(hidden);
+                }
+            }
+
+            // Disable visible inputs to prevent them from being submitted.
+            this.querySelectorAll("input:not(.hidden-entry)").forEach(function(el) {
+                el.disabled = true;
+            });
+
+            // Collect group order.
+            var allGroups = this.querySelectorAll(".edit-group");
+            for (var oi = 0; oi < allGroups.length; oi++) {
+                var gn = allGroups[oi].querySelector(".group-name").value.trim();
+                if (!gn) continue;
+                var orderInput = document.createElement("input");
+                orderInput.type = "hidden";
+                orderInput.name = "_groupOrder";
+                orderInput.value = gn;
+                orderInput.classList.add("hidden-entry");
+                this.appendChild(orderInput);
+            }
+
+            this.submit();
+        });
+    });
+</script>
+{{end}}

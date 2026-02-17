@@ -53,35 +53,49 @@ var voteScores = map[EntryVote]int{
 	"strong-yes": 3,
 }
 
-// weekdayShortNames maps Go weekdays to short names used in config.
-var weekdayShortNames = map[time.Weekday]string{
-	time.Sunday:    "sun",
-	time.Monday:    "mon",
-	time.Tuesday:   "tue",
-	time.Wednesday: "wed",
-	time.Thursday:  "thu",
-	time.Friday:    "fri",
-	time.Saturday:  "sat",
+// weekdayInfo holds display information for a weekday.
+type weekdayInfo struct {
+	Short string
+	Full  string
 }
 
-// weekdayFullNames maps short weekday names to full names for display.
-var weekdayFullNames = map[time.Weekday]string{
-	time.Sunday:    "Sunday",
-	time.Monday:    "Monday",
-	time.Tuesday:   "Tuesday",
-	time.Wednesday: "Wednesday",
-	time.Thursday:  "Thursday",
-	time.Friday:    "Friday",
-	time.Saturday:  "Saturday",
+// weekdays maps Go weekdays to their short and full names.
+var weekdays = map[time.Weekday]weekdayInfo{
+	time.Sunday:    {Short: "sun", Full: "Sunday"},
+	time.Monday:    {Short: "mon", Full: "Monday"},
+	time.Tuesday:   {Short: "tue", Full: "Tuesday"},
+	time.Wednesday: {Short: "wed", Full: "Wednesday"},
+	time.Thursday:  {Short: "thu", Full: "Thursday"},
+	time.Friday:    {Short: "fri", Full: "Friday"},
+	time.Saturday:  {Short: "sat", Full: "Saturday"},
+}
+
+// db holds all persistent data for the application in memory, and it can be
+// persisted to disk in JSON format by the auto-save mechanism.
+type db struct {
+	Entries    []Entry               `json:"entries"`
+	Votes      map[string]PersonVote `json:"votes"`
+	GroupOrder []string              `json:"groupOrder"`
+}
+
+// entryGroups returns a map from entry names to their set of groups.
+func (d *db) entryGroups() map[string]map[string]bool {
+	result := make(map[string]map[string]bool)
+	for _, e := range d.Entries {
+		if result[e.Name] == nil {
+			result[e.Name] = make(map[string]bool)
+		}
+		result[e.Name][e.Group] = true
+	}
+	return result
 }
 
 // Params contains all parameters needed to create an App.
 type Params struct {
-	Entries    []Entry
-	People     map[string]string
-	Timezone   *time.Location
-	Periods    Periods
-	GroupOrder []string
+	Entries  []Entry
+	People   map[string]string
+	Timezone *time.Location
+	Periods  Periods
 
 	// AutoSaveParams is the configuration for auto-save. If FilePath is
 	// empty, auto-save will be disabled and votes will only be kept in
@@ -92,13 +106,14 @@ type Params struct {
 
 // pageData holds template data for rendering pages.
 type pageData struct {
-	Title   string
-	Token   string
-	Person  string
-	Period  string
-	Weekday string
-	Periods []string
-	Groups  []groupData
+	Title    string
+	Token    string
+	Person   string
+	Period   string
+	Weekday  string
+	Periods  []string
+	Weekdays []weekdayInfo
+	Groups   []groupData
 }
 
 // groupData holds a group of entries for template rendering.
@@ -113,56 +128,60 @@ type entryData struct {
 	Group       string
 	CurrentVote string
 	Score       int
+	Cost        int
 	CostDisplay string
+	Open        map[string][]string
 	Closed      bool
 	StrongNo    bool
 }
 
 // App is the core application struct.
 type App struct {
-	entries    []Entry
-	entryGroup map[string]map[string]bool
 	people     map[string]string
-	tokenMap   map[string]string
+	tokens     map[string]string
 	timezone   *time.Location
 	periods    Periods
 	periodList []string
-	groupOrder []string
 	nowFunc    func() time.Time
 
-	mu    sync.RWMutex
-	votes map[string]PersonVote
+	mu sync.RWMutex
+	db db
 
 	autoSaver *autosave.AutoSaver
 
-	mux       *http.ServeMux
-	voteTmpl  *template.Template
-	tallyTmpl *template.Template
+	mux         *http.ServeMux
+	voteTmpl    *template.Template
+	tallyTmpl   *template.Template
+	entriesTmpl *template.Template
+}
+
+var tmplFuncs = template.FuncMap{
+	"title": func(s string) string {
+		if len(s) == 0 {
+			return s
+		}
+		return strings.ToUpper(s[:1]) + s[1:]
+	},
+	"contains": func(slice []string, item string) bool {
+		return slices.Contains(slice, item)
+	},
 }
 
 // New creates a new App with the given parameters.
 func New(params Params) (*App, error) {
 	a := &App{
-		entries:    params.Entries,
-		entryGroup: make(map[string]map[string]bool),
-		people:     params.People,
-		tokenMap:   make(map[string]string),
-		timezone:   params.Timezone,
-		periods:    params.Periods,
-		votes:      make(map[string]PersonVote),
-		groupOrder: params.GroupOrder,
-		nowFunc:    time.Now,
-	}
-
-	for _, e := range a.entries {
-		if a.entryGroup[e.Name] == nil {
-			a.entryGroup[e.Name] = make(map[string]bool)
-		}
-		a.entryGroup[e.Name][e.Group] = true
+		people:   params.People,
+		tokens:   make(map[string]string),
+		timezone: params.Timezone,
+		periods:  params.Periods,
+		db: db{
+			Votes: make(map[string]PersonVote),
+		},
+		nowFunc: time.Now,
 	}
 
 	for person, token := range a.people {
-		a.tokenMap[token] = person
+		a.tokens[token] = person
 	}
 
 	// Build period list sorted by start time for consistent display.
@@ -173,18 +192,8 @@ func New(params Params) (*App, error) {
 		return cmp.Compare(params.Periods[a][0], params.Periods[b][0])
 	})
 
-	// Parse templates.
-	funcMap := template.FuncMap{
-		"title": func(s string) string {
-			if len(s) == 0 {
-				return s
-			}
-			return strings.ToUpper(s[:1]) + s[1:]
-		},
-	}
-
 	var err error
-	a.voteTmpl, err = template.New("").Funcs(funcMap).ParseFS(templateFS,
+	a.voteTmpl, err = template.New("").Funcs(tmplFuncs).ParseFS(templateFS,
 		"templates/layout.html",
 		"templates/nav.html",
 		"templates/entrylist.html",
@@ -195,7 +204,7 @@ func New(params Params) (*App, error) {
 		return nil, fmt.Errorf("parsing vote templates: %w", err)
 	}
 
-	a.tallyTmpl, err = template.New("").Funcs(funcMap).ParseFS(templateFS,
+	a.tallyTmpl, err = template.New("").Funcs(tmplFuncs).ParseFS(templateFS,
 		"templates/layout.html",
 		"templates/nav.html",
 		"templates/entrylist.html",
@@ -204,6 +213,15 @@ func New(params Params) (*App, error) {
 	)
 	if err != nil {
 		return nil, fmt.Errorf("parsing tally templates: %w", err)
+	}
+
+	a.entriesTmpl, err = template.New("").Funcs(tmplFuncs).ParseFS(templateFS,
+		"templates/layout.html",
+		"templates/nav.html",
+		"templates/entries.html",
+	)
+	if err != nil {
+		return nil, fmt.Errorf("parsing entries templates: %w", err)
 	}
 
 	// Initialize auto-save if configured.
@@ -215,6 +233,11 @@ func New(params Params) (*App, error) {
 		if asErr != nil {
 			return nil, fmt.Errorf("cannot initialize auto-saver: %v", asErr)
 		}
+	}
+
+	// Import entries from config if none were loaded from file.
+	if len(a.db.Entries) == 0 {
+		a.db.Entries = params.Entries
 	}
 
 	// Set up routes.
@@ -229,6 +252,8 @@ func New(params Params) (*App, error) {
 	a.mux.HandleFunc("GET /{$}", a.handleVote)
 	a.mux.HandleFunc("GET /votes", a.handleTallyGet)
 	a.mux.HandleFunc("POST /votes", a.handleTallyPost)
+	a.mux.HandleFunc("GET /entries", a.handleEntriesGet)
+	a.mux.HandleFunc("POST /entries", a.handleEntriesPost)
 	a.mux.HandleFunc("GET /status", a.handleStatus)
 
 	return a, nil
@@ -236,7 +261,7 @@ func New(params Params) (*App, error) {
 
 // personForToken returns the person name for a given token.
 func (a *App) personForToken(token string) (string, bool) {
-	person, ok := a.tokenMap[token]
+	person, ok := a.tokens[token]
 	return person, ok
 }
 
@@ -247,33 +272,41 @@ func (a *App) delayAutoSave() {
 	}
 }
 
-// Load deserializes votes from the given reader.
+// Load deserializes data from the given reader.
 func (a *App) Load(r io.Reader) error {
 	a.mu.Lock()
 	defer a.mu.Unlock()
 
 	dec := json.NewDecoder(r)
-	var data map[string]PersonVote
+	var data db
 	err := dec.Decode(&data)
 	if errors.Is(err, io.EOF) || errors.Is(err, io.ErrUnexpectedEOF) {
 		// Ignoring a corrupted or empty file is intentional: we prefer to
-		// lose all votes than prevent the application from starting.
+		// lose all data than prevent the application from starting.
 		return nil
 	} else if err != nil {
-		return fmt.Errorf("cannot deserialize votes: %w", err)
+		return fmt.Errorf("cannot deserialize data: %w", err)
 	}
-	a.votes = data
+	if data.Votes != nil {
+		a.db.Votes = data.Votes
+	}
+	if data.Entries != nil {
+		a.db.Entries = data.Entries
+	}
+	if data.GroupOrder != nil {
+		a.db.GroupOrder = data.GroupOrder
+	}
 	return nil
 }
 
-// Save serializes votes to the given writer.
+// Save serializes data to the given writer.
 func (a *App) Save(w io.Writer) error {
 	a.mu.RLock()
 	defer a.mu.RUnlock()
 
 	enc := json.NewEncoder(w)
-	if err := enc.Encode(a.votes); err != nil {
-		return fmt.Errorf("cannot serialize votes: %w", err)
+	if err := enc.Encode(a.db); err != nil {
+		return fmt.Errorf("cannot serialize data: %w", err)
 	}
 	return nil
 }
@@ -292,13 +325,14 @@ func (a *App) updateVotes(person string, votes map[string]string) {
 	a.mu.Lock()
 	defer a.mu.Unlock()
 
+	entryGroup := a.db.entryGroups()
 	pv := make(PersonVote)
 	for key, vote := range votes {
 		group, name, ok := strings.Cut(key, "|")
 		if !ok {
 			continue
 		}
-		groups, exists := a.entryGroup[name]
+		groups, exists := entryGroup[name]
 		if !exists || !groups[group] {
 			continue
 		}
@@ -310,17 +344,35 @@ func (a *App) updateVotes(person string, votes map[string]string) {
 		}
 		pv[group][name] = EntryVote(vote)
 	}
-	a.votes[person] = pv
+	a.db.Votes[person] = pv
 }
 
-// votePageData returns grouped entries with current votes for the vote page.
-func (a *App) votePageData(person string) []groupData {
+// updateEntries replaces all entries.
+func (a *App) updateEntries(entries []Entry) {
+	defer a.delayAutoSave()
+	a.mu.Lock()
+	defer a.mu.Unlock()
+
+	a.db.Entries = entries
+}
+
+// updateGroupOrder replaces the group ordering.
+func (a *App) updateGroupOrder(order []string) {
+	defer a.delayAutoSave()
+	a.mu.Lock()
+	defer a.mu.Unlock()
+
+	a.db.GroupOrder = order
+}
+
+// entriesData returns grouped entries for rendering templates (vote and edit).
+func (a *App) entriesData(person string) []groupData {
 	a.mu.RLock()
 	defer a.mu.RUnlock()
 
 	// Group entries by group name.
 	groupMap := make(map[string][]Entry)
-	for _, e := range a.entries {
+	for _, e := range a.db.Entries {
 		groupMap[e.Group] = append(groupMap[e.Group], e)
 	}
 
@@ -328,9 +380,9 @@ func (a *App) votePageData(person string) []groupData {
 	for name := range groupMap {
 		groupNames = append(groupNames, name)
 	}
-	sortGroupNames(groupNames, a.groupOrder)
+	sortGroupNames(groupNames, a.db.GroupOrder)
 
-	personVotes := a.votes[person]
+	personVotes := a.db.Votes[person]
 
 	var result []groupData
 	for _, gName := range groupNames {
@@ -351,6 +403,8 @@ func (a *App) votePageData(person string) []groupData {
 				Name:        e.Name,
 				Group:       e.Group,
 				CurrentVote: vote,
+				Cost:        e.Cost,
+				Open:        e.Open,
 			})
 		}
 
@@ -376,12 +430,12 @@ func (a *App) tallyData(weekday time.Weekday, period string) []groupData {
 	}
 
 	var items []scored
-	for _, e := range a.entries {
+	for _, e := range a.db.Entries {
 		sum := 0
 		strongNo := false
 		for person := range a.people {
 			voteVal := 2 // Default: yes.
-			if personVotes, ok := a.votes[person]; ok {
+			if personVotes, ok := a.db.Votes[person]; ok {
 				if gv, ok := personVotes[e.Group]; ok {
 					if v, ok := gv[e.Name]; ok {
 						voteVal = voteScores[v]
@@ -397,7 +451,7 @@ func (a *App) tallyData(weekday time.Weekday, period string) []groupData {
 
 		// Check if the entry is open for this weekday and period.
 		closed := true
-		if periods, ok := e.Open[weekdayShortNames[weekday]]; ok {
+		if periods, ok := e.Open[weekdays[weekday].Short]; ok {
 			if slices.Contains(periods, period) {
 				closed = false
 			}
@@ -416,7 +470,7 @@ func (a *App) tallyData(weekday time.Weekday, period string) []groupData {
 	for name := range groupMap {
 		groupNames = append(groupNames, name)
 	}
-	sortGroupNames(groupNames, a.groupOrder)
+	sortGroupNames(groupNames, a.db.GroupOrder)
 
 	sortEntries := func(a, b scored) int {
 		// Score descending.

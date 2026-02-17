@@ -13,7 +13,7 @@ import (
 
 const (
 	defaultDBPath              = "db.json"
-	defaultPersistInterval     = 15 * time.Minute
+	defaultPersistInterval     = 5 * time.Minute
 	defaultHealthCheckInterval = 3 * time.Minute
 )
 
@@ -28,7 +28,7 @@ func DBPath() string {
 }
 
 // PersistInterval reads and validates the PERSIST_INTERVAL environment
-// variable. If not set, it defaults to 15 minutes.
+// variable. If not set, it defaults to 5 minutes.
 func PersistInterval() time.Duration {
 	s := os.Getenv("PERSIST_INTERVAL")
 	if d, err := time.ParseDuration(s); err == nil {
@@ -72,7 +72,9 @@ type entryConfig struct {
 // entriesConfig maps group names to entry names to entry configurations.
 type entriesConfig map[string]map[string]entryConfig
 
-// Entries reads and validates the ENTRIES environment variable.
+// Entries reads and validates entries from the the ENTRIES environment
+// variable. This is only used for an initial import, and may be missing;
+// entries are persisted in the database after the initial import.
 func Entries() ([]app.Entry, error) {
 	s := os.Getenv("ENTRIES")
 	if s == "" {
@@ -157,20 +159,6 @@ func Periods() (app.Periods, error) {
 	}
 
 	return app.Periods(raw), nil
-}
-
-// GroupOrder reads and validates the GROUP_ORDER environment variable.
-// If not set, it returns nil (no custom ordering).
-func GroupOrder() ([]string, error) {
-	s := os.Getenv("GROUP_ORDER")
-	if s == "" {
-		return nil, nil
-	}
-	var order []string
-	if err := json.Unmarshal([]byte(s), &order); err != nil {
-		return nil, fmt.Errorf("GROUP_ORDER is not valid JSON: %w", err)
-	}
-	return order, nil
 }
 
 // hoursForPeriod returns the list of hours covered by a period [start, end).
