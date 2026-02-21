@@ -13,6 +13,7 @@ import (
 
 const (
 	defaultDBPath              = "db.json"
+	defaultPort                = 8080
 	defaultPersistInterval     = 5 * time.Minute
 	defaultHealthCheckInterval = 3 * time.Minute
 )
@@ -47,11 +48,12 @@ func HealthCheckInterval() time.Duration {
 	return defaultHealthCheckInterval
 }
 
-// Port reads and validates the PORT environment variable.
+// Port reads and validates the PORT environment variable. If not set, it
+// defaults to 8080.
 func Port() (int, error) {
 	s := os.Getenv("PORT")
 	if s == "" {
-		return 0, fmt.Errorf("PORT is not set")
+		return defaultPort, nil
 	}
 	port, err := strconv.Atoi(s)
 	if err != nil {
@@ -78,7 +80,7 @@ type entriesConfig map[string]map[string]entryConfig
 func Entries() ([]app.Entry, error) {
 	s := os.Getenv("ENTRIES")
 	if s == "" {
-		return nil, fmt.Errorf("ENTRIES is not set")
+		return nil, nil
 	}
 	var config entriesConfig
 	if err := json.Unmarshal([]byte(s), &config); err != nil {

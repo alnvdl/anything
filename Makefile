@@ -1,8 +1,7 @@
 PORT = 8080
 TIMEZONE = America/Sao_Paulo
 PERIODS = '{"breakfast":[0,10],"lunch":[10,15],"dinner":[15,0]}'
-PEOPLE = '{"alice":"token-alice","bob":"token-bob"}'
-GROUP_ORDER = '["Trendy Neighborhood","Downtown","Upscale Street"]'
+PEOPLE = '{"alice":"alice","bob":"bob"}'
 ENTRIES = '{ \
 	"Trendy Neighborhood": { \
 		"Morning Bakery": {"cost":2,"open":{"tue":["breakfast","lunch"],"wed":["breakfast","lunch"],"thu":["breakfast","lunch"],"fri":["breakfast","lunch"],"sat":["breakfast","lunch"],"sun":["breakfast","lunch"]}}, \
@@ -40,7 +39,6 @@ dev:
 	PERIODS=$(PERIODS) \
 	PEOPLE=$(PEOPLE) \
 	ENTRIES=$(ENTRIES) \
-	GROUP_ORDER=$(GROUP_ORDER) \
 	go run -buildvcs=true ./cmd/anythingsrv
 
 test:

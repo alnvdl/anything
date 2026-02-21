@@ -26,9 +26,9 @@ func TestPort(t *testing.T) {
 		env:  "8080",
 		want: 8080,
 	}, {
-		desc:    "not set",
-		env:     "",
-		wantErr: "PORT is not set",
+		desc: "not set defaults to 8080",
+		env:  "",
+		want: 8080,
 	}, {
 		desc:    "not a number",
 		env:     "abc",
@@ -80,9 +80,9 @@ func TestEntries(t *testing.T) {
 		env:       `{"G1":{"A":{"open":{"mon":["lunch"]},"cost":2}}}`,
 		wantCount: 1,
 	}, {
-		desc:    "not set",
-		env:     "",
-		wantErr: "ENTRIES is not set",
+		desc:      "not set",
+		env:       "",
+		wantCount: 0,
 	}, {
 		desc:    "invalid JSON",
 		env:     `not json`,
