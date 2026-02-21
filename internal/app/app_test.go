@@ -440,11 +440,11 @@ func TestTallyData(t *testing.T) {
 		// Taco Stand: no vote = yes (2).
 	})
 
-	// Tally for Monday lunch.
-	// Pizza Place: (3+2)*3 - 2 = 15 - 2 = 13, open.
-	// Burger Joint: (1+3)*3 - 1 = 12 - 1 = 11, open.
-	// Sushi Bar: (0+2)*3 - 4 = 6 - 4 = 2, closed (only dinner on mon).
-	// Taco Stand: (2+2)*3 - 1 = 12 - 1 = 11, open.
+	// Tally for Monday lunch (n_people=2).
+	// Pizza Place: (3+2)*(2+1) - (2*2) = 15 - 4 = 11, open.
+	// Burger Joint: (1+3)*(2+1) - (1*2) = 12 - 2 = 10, open.
+	// Sushi Bar: (0+2)*(2+1) - (4*2) = 6 - 8 = -2, closed (only dinner on mon).
+	// Taco Stand: (2+2)*(2+1) - (1*2) = 12 - 2 = 10, open.
 
 	groups := a.TallyData(time.Monday, "lunch")
 
@@ -453,7 +453,7 @@ func TestTallyData(t *testing.T) {
 	}
 
 	// Downtown group: open entries sorted by score desc, then cost, then name.
-	// Pizza Place: 13 (open), Burger Joint: 11 (open).
+	// Pizza Place: 11 (open), Burger Joint: 10 (open).
 	dt := groups[0]
 	if dt.Name != "Downtown" {
 		t.Fatalf("first group = %q, want Downtown", dt.Name)
@@ -461,17 +461,17 @@ func TestTallyData(t *testing.T) {
 	if len(dt.Entries) != 2 {
 		t.Fatalf("Downtown should have 2 entries, got %d", len(dt.Entries))
 	}
-	if dt.Entries[0].Name != "Pizza Place" || dt.Entries[0].Score != 13 {
-		t.Errorf("Downtown[0] = %q score %d, want Pizza Place score 13", dt.Entries[0].Name, dt.Entries[0].Score)
+	if dt.Entries[0].Name != "Pizza Place" || dt.Entries[0].Score != 11 {
+		t.Errorf("Downtown[0] = %q score %d, want Pizza Place score 11", dt.Entries[0].Name, dt.Entries[0].Score)
 	}
-	if dt.Entries[1].Name != "Burger Joint" || dt.Entries[1].Score != 11 {
-		t.Errorf("Downtown[1] = %q score %d, want Burger Joint score 11", dt.Entries[1].Name, dt.Entries[1].Score)
+	if dt.Entries[1].Name != "Burger Joint" || dt.Entries[1].Score != 10 {
+		t.Errorf("Downtown[1] = %q score %d, want Burger Joint score 10", dt.Entries[1].Name, dt.Entries[1].Score)
 	}
 	if dt.Entries[0].Closed || dt.Entries[1].Closed {
 		t.Error("Downtown entries should be open on Monday lunch")
 	}
 
-	// Uptown group: Taco Stand (11, open), Sushi Bar (2, closed).
+	// Uptown group: Taco Stand (10, open), Sushi Bar (-2, closed).
 	ut := groups[1]
 	if ut.Name != "Uptown" {
 		t.Fatalf("second group = %q, want Uptown", ut.Name)
@@ -479,14 +479,14 @@ func TestTallyData(t *testing.T) {
 	if len(ut.Entries) != 2 {
 		t.Fatalf("Uptown should have 2 entries, got %d", len(ut.Entries))
 	}
-	if ut.Entries[0].Name != "Taco Stand" || ut.Entries[0].Score != 11 {
-		t.Errorf("Uptown[0] = %q score %d, want Taco Stand score 11", ut.Entries[0].Name, ut.Entries[0].Score)
+	if ut.Entries[0].Name != "Taco Stand" || ut.Entries[0].Score != 10 {
+		t.Errorf("Uptown[0] = %q score %d, want Taco Stand score 10", ut.Entries[0].Name, ut.Entries[0].Score)
 	}
 	if ut.Entries[0].Closed {
 		t.Error("Taco Stand should be open on Monday lunch")
 	}
-	if ut.Entries[1].Name != "Sushi Bar" || ut.Entries[1].Score != 2 {
-		t.Errorf("Uptown[1] = %q score %d, want Sushi Bar score 2", ut.Entries[1].Name, ut.Entries[1].Score)
+	if ut.Entries[1].Name != "Sushi Bar" || ut.Entries[1].Score != -2 {
+		t.Errorf("Uptown[1] = %q score %d, want Sushi Bar score -2", ut.Entries[1].Name, ut.Entries[1].Score)
 	}
 	if !ut.Entries[1].Closed {
 		t.Error("Sushi Bar should be closed on Monday lunch")
@@ -542,16 +542,16 @@ func TestTallyDataSortingTiebreakers(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	// No votes = all default to yes (2).
-	// All entries have score: 2*3 - cost.
-	// B Place: 6-2=4, A Place: 6-2=4, C Place: 6-1=5.
+	// No votes = all default to yes (2). n_people=1.
+	// All entries have score: 2*(1+1) - cost*1.
+	// B Place: 4-2=2, A Place: 4-2=2, C Place: 4-1=3.
 	groups := a.TallyData(time.Monday, "lunch")
 
 	if len(groups) != 1 || len(groups[0].Entries) != 3 {
 		t.Fatalf("expected 1 group with 3 entries")
 	}
 
-	// C Place (score 5) first, then A Place (score 4, cost 2, name "A"), then B Place (score 4, cost 2, name "B").
+	// C Place (score 3) first, then A Place (score 2, cost 2, name "A"), then B Place (score 2, cost 2, name "B").
 	if groups[0].Entries[0].Name != "C Place" {
 		t.Errorf("entry[0] = %q, want C Place", groups[0].Entries[0].Name)
 	}
@@ -620,12 +620,12 @@ func TestTallyDataDefaultVotes(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	// No votes submitted. All 3 people default to yes (2).
-	// Score = (2+2+2)*3 - 1 = 18 - 1 = 17.
+	// No votes submitted. All 3 people default to yes (2). n_people=3.
+	// Score = (2+2+2)*(3+1) - (1*3) = 24 - 3 = 21.
 	groups := a.TallyData(time.Monday, "lunch")
 
-	if groups[0].Entries[0].Score != 17 {
-		t.Errorf("score = %d, want 17", groups[0].Entries[0].Score)
+	if groups[0].Entries[0].Score != 21 {
+		t.Errorf("score = %d, want 21", groups[0].Entries[0].Score)
 	}
 }
 

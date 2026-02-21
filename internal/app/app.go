@@ -449,7 +449,8 @@ func (a *App) tallyData(weekday time.Weekday, period string) []groupData {
 			}
 			sum += voteVal
 		}
-		score := sum*3 - e.Cost
+		nPeople := len(a.people)
+		score := sum*(nPeople+1) - (e.Cost * nPeople)
 
 		// Check if the entry is open for this weekday and period.
 		closed := true
