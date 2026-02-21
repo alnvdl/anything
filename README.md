@@ -1,7 +1,8 @@
 # alnvdl/anything
 Anything is a simple web application built for when you ask your significant
-other what's for dinner and the answer you get is "anything". It is mostly
-built and maintained using LLMs (see [How this was built](#how-this-was-built)).
+other what they would like for dinner and the answer you get is "anything".
+It is mostly built and maintained using LLMs
+(see [How this was built](#how-this-was-built)).
 
 It lists places (or maybe even dishes if you are cooking at home), and lets
 people vote on their favorites (with strong-no, no, yes and strong-yes votes).
