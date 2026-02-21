@@ -143,12 +143,15 @@ h1>small {
     align-items: center;
     gap: 8px;
     margin-top: 24px;
+    max-width: 100%;
+    box-sizing: border-box;
 }
 
 .edit-group-header input[type="text"] {
     font-size: 1.1rem;
     font-weight: 700;
     flex-grow: 1;
+    min-width: 0;
 }
 
 .edit-group-header button {

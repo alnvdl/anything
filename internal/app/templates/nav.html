@@ -1,8 +1,9 @@
 {{define "nav"}}
-
-
 <h1 class="header"><img src="/static/icon.svg" class="logo" /> {{.Title}}<small>{{if .Period}} (for {{.Period}} on {{.Weekday}}){{else if .Person}} ({{.Person}}'s votes){{end}}</small></h1>
-<a href="/?token={{.Token}}">Vote</a> | <a href="/entries?token={{.Token}}">Edit</a> | Tally: {{range $i, $p := .Periods}}{{if $i}} | {{end}}<a
-    href="/votes?period={{$p}}&amp;token={{$.Token}}">{{title $p}}</a>{{end}}
+<nav>
+    <a href="/?token={{.Token}}">Vote</a> |
+    <a href="/entries?token={{.Token}}">Edit</a> |
+    Tally: {{range $i, $p := .Periods}}{{if $i}} | {{end}}<a href="/votes?period={{$p}}&amp;token={{$.Token}}">{{title $p}}</a>{{end}}
+</nav>
 <hr />
 {{end}}
