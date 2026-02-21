@@ -96,6 +96,9 @@ The result is what you can see in this repo. This is not 100% what I would have
 coded myself, but I wanted to exercise how I will maintain and evolve a rather
 small application almost entirely coded with an LLM.
 
+This application intentionally avoids using external dependencies to make it
+easier to maintain many years from now.
+
 ## Icons
 All icons are from the
 [Bootstrap Icons project](https://icons.getbootstrap.com/).
