@@ -1,7 +1,5 @@
-PORT = 8080
-TIMEZONE = America/Sao_Paulo
-PERIODS = '{"breakfast":[0,10],"lunch":[10,15],"dinner":[15,0]}'
 PEOPLE = '{"alice":"alice","bob":"bob"}'
+PERIODS = '{"breakfast":[0,10],"lunch":[10,15],"dinner":[15,0]}'
 ENTRIES = '{ \
 	"Trendy Neighborhood": { \
 		"Morning Bakery": {"cost":2,"open":{"tue":["breakfast","lunch"],"wed":["breakfast","lunch"],"thu":["breakfast","lunch"],"fri":["breakfast","lunch"],"sat":["breakfast","lunch"],"sun":["breakfast","lunch"]}}, \
@@ -30,15 +28,15 @@ ENTRIES = '{ \
 		"Wine and Tapas": {"cost":3,"open":{"wed":["dinner"],"thu":["dinner"],"fri":["dinner"],"sat":["lunch","dinner"],"sun":["lunch"]}} \
 	} \
 }'
+TIMEZONE = America/Sao_Paulo
 
 .PHONY: dev test
 
 dev:
-	PORT=$(PORT) \
-	TIMEZONE=$(TIMEZONE) \
-	PERIODS=$(PERIODS) \
-	PEOPLE=$(PEOPLE) \
 	ENTRIES=$(ENTRIES) \
+	PEOPLE=$(PEOPLE) \
+	PERIODS=$(PERIODS) \
+	TIMEZONE=$(TIMEZONE) \
 	go run -buildvcs=true ./cmd/anythingsrv
 
 test:
