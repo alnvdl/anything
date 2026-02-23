@@ -22,10 +22,11 @@ To run Anything locally, just install Go 1.25+ and run `make dev`.
 
 Then access the application at http://localhost:8080/?token=alice.
 
+You may also run tests with `make test`.
+
 Given the low-stakes of the data involved, we chose to keep the authentication
 token in the URL for simplicity. People are supposed to bookmark their secret
-URL to use the application. Support for a PWA mode may or may not be added in
-the future.
+URL or install the application on their device as a PWA to use it.
 
 ## Environment variables
 The following environment variables can be used to configure the application:

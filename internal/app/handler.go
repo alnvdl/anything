@@ -143,6 +143,23 @@ func (a *App) handleTallyPost(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
+// handleManifest serves the PWA manifest with the user's token.
+func (a *App) handleManifest(w http.ResponseWriter, r *http.Request) {
+	_, ok := a.authenticate(r)
+	if !ok {
+		http.Error(w, "Forbidden", http.StatusForbidden)
+		return
+	}
+
+	token := r.URL.Query().Get("token")
+	data := struct{ Token string }{Token: token}
+
+	w.Header().Set("Content-Type", "application/json")
+	if err := a.manifestTmpl.ExecuteTemplate(w, "manifest.json", data); err != nil {
+		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
+	}
+}
+
 func (a *App) handleStatus(w http.ResponseWriter, _ *http.Request) {
 	http.Error(w, version.Version(), http.StatusOK)
 }

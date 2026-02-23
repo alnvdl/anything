@@ -1,5 +1,4 @@
 # alnvdl/anything
-
 Anything is a web application for two or more people to vote on what's for
 breakfast, lunch or dinner. See the README.md for a more detailed description
 of how it works.

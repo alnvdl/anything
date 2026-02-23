@@ -14,12 +14,13 @@ import (
 	"slices"
 	"strings"
 	"sync"
+	text_template "text/template"
 	"time"
 
 	"github.com/alnvdl/autosave"
 )
 
-//go:embed templates/*.html
+//go:embed templates/*.html templates/*.json
 var templateFS embed.FS
 
 //go:embed static/*
@@ -151,10 +152,11 @@ type App struct {
 
 	autoSaver *autosave.AutoSaver
 
-	mux         *http.ServeMux
-	voteTmpl    *template.Template
-	tallyTmpl   *template.Template
-	entriesTmpl *template.Template
+	mux          *http.ServeMux
+	voteTmpl     *template.Template
+	tallyTmpl    *template.Template
+	entriesTmpl  *template.Template
+	manifestTmpl *text_template.Template
 }
 
 var tmplFuncs = template.FuncMap{
@@ -226,6 +228,13 @@ func New(params Params) (*App, error) {
 		return nil, fmt.Errorf("parsing entries templates: %w", err)
 	}
 
+	a.manifestTmpl, err = text_template.New("").ParseFS(templateFS,
+		"templates/manifest.json",
+	)
+	if err != nil {
+		return nil, fmt.Errorf("parsing manifest template: %w", err)
+	}
+
 	// Initialize auto-save if configured.
 	if params.AutoSaveParams.FilePath != "" {
 		params.AutoSaveParams.LoaderSaver = a
@@ -256,6 +265,7 @@ func New(params Params) (*App, error) {
 	a.mux.HandleFunc("POST /votes", a.handleTallyPost)
 	a.mux.HandleFunc("GET /entries", a.handleEntriesGet)
 	a.mux.HandleFunc("POST /entries", a.handleEntriesPost)
+	a.mux.HandleFunc("GET /manifest.json", a.handleManifest)
 	a.mux.HandleFunc("GET /status", a.handleStatus)
 
 	return a, nil

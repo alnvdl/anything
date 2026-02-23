@@ -1,6 +1,7 @@
 package app_test
 
 import (
+	"encoding/json"
 	"net/http"
 	"net/http/httptest"
 	"net/url"
@@ -23,7 +24,7 @@ func TestHandleVote(t *testing.T) {
 		desc:       "valid token",
 		token:      "tokenA",
 		wantStatus: http.StatusOK,
-		wantBody:   []string{"Anything", "alice", "Pizza Place", "Burger Joint", "Sushi Bar", "Taco Stand", "Downtown|Pizza Place", "Uptown|Sushi Bar"},
+		wantBody:   []string{"Anything", "alice", "Pizza Place", "Burger Joint", "Sushi Bar", "Taco Stand", "Downtown|Pizza Place", "Uptown|Sushi Bar", "manifest.json?token=tokenA"},
 	}, {
 		desc:       "invalid token",
 		token:      "bad",
@@ -91,7 +92,7 @@ func TestHandleTallyGet(t *testing.T) {
 		token:      "tokenA",
 		period:     "lunch",
 		wantStatus: http.StatusOK,
-		wantBody:   []string{"Anything", "for lunch on", "Monday", "Downtown", "Uptown", "weekday=sun", "weekday=tue"},
+		wantBody:   []string{"Anything", "for lunch on", "Monday", "Downtown", "Uptown", "weekday=sun", "weekday=tue", "manifest.json?token=tokenA"},
 	}, {
 		desc:       "past period shows next day",
 		token:      "tokenA",
@@ -199,7 +200,7 @@ func TestHandleTallyPost(t *testing.T) {
 	}
 
 	// Verify day navigation links appear.
-	for _, s := range []string{"weekday=sun", "weekday=tue"} {
+	for _, s := range []string{"weekday=sun", "weekday=tue", "manifest.json?token=tokenA"} {
 		if !strings.Contains(body, s) {
 			t.Errorf("body does not contain %q", s)
 		}
@@ -288,7 +289,7 @@ func TestHandleEntriesGet(t *testing.T) {
 		desc:       "valid token shows entries form",
 		token:      "tokenA",
 		wantStatus: http.StatusOK,
-		wantBody:   []string{"Anything", "Downtown", "Uptown", "Pizza Place", "Burger Joint", "Sushi Bar", "Taco Stand", "Save", "Add entry", "Add group", "mon", "tue", "wed", "thu", "fri", "sat", "sun", "breakfast", "lunch", "dinner", "move-group-up", "move-group-down"},
+		wantBody:   []string{"Anything", "Downtown", "Uptown", "Pizza Place", "Burger Joint", "Sushi Bar", "Taco Stand", "Save", "Add entry", "Add group", "mon", "tue", "wed", "thu", "fri", "sat", "sun", "breakfast", "lunch", "dinner", "move-group-up", "move-group-down", "manifest.json?token=tokenA"},
 	}, {
 		desc:       "invalid token",
 		token:      "bad",
@@ -577,6 +578,63 @@ func TestHandleEntriesPost(t *testing.T) {
 						t.Errorf("group order[%d] = %q, want %q", i, order[i], want)
 					}
 				}
+			}
+		})
+	}
+}
+
+func TestHandleManifest(t *testing.T) {
+	a := newTestApp(t)
+
+	var tests = []struct {
+		desc string
+
+		token string
+
+		wantStatus int
+		wantToken  string
+	}{{
+		desc:       "valid token",
+		token:      "tokenA",
+		wantStatus: http.StatusOK,
+		wantToken:  "tokenA",
+	}, {
+		desc:       "invalid token",
+		token:      "bad",
+		wantStatus: http.StatusForbidden,
+	}, {
+		desc:       "no token",
+		token:      "",
+		wantStatus: http.StatusForbidden,
+	}}
+
+	for _, test := range tests {
+		t.Run(test.desc, func(t *testing.T) {
+			req := httptest.NewRequest("GET", "/manifest.json?token="+test.token, nil)
+			w := httptest.NewRecorder()
+			a.ServeHTTP(w, req)
+
+			if w.Code != test.wantStatus {
+				t.Fatalf("status = %d, want %d", w.Code, test.wantStatus)
+			}
+
+			if test.wantStatus != http.StatusOK {
+				return
+			}
+
+			ct := w.Header().Get("Content-Type")
+			if ct != "application/json" {
+				t.Errorf("Content-Type = %q, want %q", ct, "application/json")
+			}
+
+			var manifest map[string]any
+			if err := json.Unmarshal(w.Body.Bytes(), &manifest); err != nil {
+				t.Fatalf("invalid JSON: %v", err)
+			}
+
+			wantStartURL := "/?token=" + test.wantToken
+			if manifest["start_url"] != wantStartURL {
+				t.Errorf("start_url = %v, want %q", manifest["start_url"], wantStartURL)
 			}
 		})
 	}
