@@ -289,7 +289,7 @@ func TestHandleEntriesGet(t *testing.T) {
 		desc:       "valid token shows entries form",
 		token:      "tokenA",
 		wantStatus: http.StatusOK,
-		wantBody:   []string{"Anything", "Downtown", "Uptown", "Pizza Place", "Burger Joint", "Sushi Bar", "Taco Stand", "Save", "Add entry", "Add group", "mon", "tue", "wed", "thu", "fri", "sat", "sun", "breakfast", "lunch", "dinner", "move-group-up", "move-group-down", "manifest.json?token=tokenA"},
+		wantBody:   []string{"Anything", "Downtown", "Uptown", "Pizza Place", "Burger Joint", "Sushi Bar", "Taco Stand", "Save", "+", "Add group", "mon", "tue", "wed", "thu", "fri", "sat", "sun", "breakfast", "lunch", "dinner", "move-group-up", "move-group-down", "manifest.json?token=tokenA"},
 	}, {
 		desc:       "invalid token",
 		token:      "bad",
