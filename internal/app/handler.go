@@ -176,7 +176,7 @@ func (a *App) handleExport(w http.ResponseWriter, r *http.Request) {
 	a.mu.RLock()
 	defer a.mu.RUnlock()
 
-	w.Header().Set("Content-Type", "application/json")
+	w.Header().Set("Content-Type", "application/json; charset=utf-8")
 	enc := json.NewEncoder(w)
 	if err := enc.Encode(a.db); err != nil {
 		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
