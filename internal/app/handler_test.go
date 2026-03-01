@@ -639,3 +639,72 @@ func TestHandleManifest(t *testing.T) {
 		})
 	}
 }
+
+func TestHandleExport(t *testing.T) {
+	a := newTestApp(t)
+
+	// Add some votes so the export has non-empty votes.
+	a.UpdateVotes("alice", map[string]string{
+		"Downtown|Pizza Place":  "strong-yes",
+		"Downtown|Burger Joint": "no",
+	})
+
+	var tests = []struct {
+		desc       string
+		token      string
+		wantStatus int
+	}{{
+		desc:       "valid token returns JSON dump",
+		token:      "tokenA",
+		wantStatus: http.StatusOK,
+	}, {
+		desc:       "invalid token",
+		token:      "bad",
+		wantStatus: http.StatusForbidden,
+	}, {
+		desc:       "no token",
+		token:      "",
+		wantStatus: http.StatusForbidden,
+	}}
+
+	for _, test := range tests {
+		t.Run(test.desc, func(t *testing.T) {
+			req := httptest.NewRequest("GET", "/export.json?token="+test.token, nil)
+			w := httptest.NewRecorder()
+			a.ServeHTTP(w, req)
+
+			if w.Code != test.wantStatus {
+				t.Fatalf("status = %d, want %d", w.Code, test.wantStatus)
+			}
+
+			if test.wantStatus != http.StatusOK {
+				return
+			}
+
+			ct := w.Header().Get("Content-Type")
+			if ct != "application/json" {
+				t.Errorf("Content-Type = %q, want %q", ct, "application/json")
+			}
+
+			var export struct {
+				Entries    []app.Entry               `json:"entries"`
+				Votes      map[string]app.PersonVote `json:"votes"`
+				GroupOrder []string                  `json:"groupOrder"`
+			}
+			if err := json.Unmarshal(w.Body.Bytes(), &export); err != nil {
+				t.Fatalf("invalid JSON: %v", err)
+			}
+
+			if len(export.Entries) != len(testEntries()) {
+				t.Errorf("got %d entries, want %d", len(export.Entries), len(testEntries()))
+			}
+
+			if export.Votes["alice"]["Downtown"]["Pizza Place"] != "strong-yes" {
+				t.Errorf("alice Pizza Place vote = %q, want strong-yes", export.Votes["alice"]["Downtown"]["Pizza Place"])
+			}
+			if export.Votes["alice"]["Downtown"]["Burger Joint"] != "no" {
+				t.Errorf("alice Burger Joint vote = %q, want no", export.Votes["alice"]["Downtown"]["Burger Joint"])
+			}
+		})
+	}
+}

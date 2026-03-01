@@ -7,7 +7,8 @@ It is mostly built and maintained using LLMs
 It lists places (or maybe even dishes if you are cooking at home), and lets
 people vote on their favorites (with strong-no, no, yes and strong-yes votes).
 An aggregate score is calculated using a formula, and users can see places
-sorted by score and cost. You can also use groups to organize places.
+sorted by score and cost. You can also use groups to organize places. Click 5
+times on the fork-and-knife icon in the nav bar to export all data.
 
 <table>
     <tr>

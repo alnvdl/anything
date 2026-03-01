@@ -1,6 +1,7 @@
 package app
 
 import (
+	"encoding/json"
 	"net/http"
 	"strconv"
 	"strings"
@@ -162,6 +163,24 @@ func (a *App) handleManifest(w http.ResponseWriter, r *http.Request) {
 
 func (a *App) handleStatus(w http.ResponseWriter, _ *http.Request) {
 	http.Error(w, version.Version(), http.StatusOK)
+}
+
+// handleExport serves a JSON dump of the entire database.
+func (a *App) handleExport(w http.ResponseWriter, r *http.Request) {
+	_, ok := a.authenticate(r)
+	if !ok {
+		http.Error(w, "Forbidden", http.StatusForbidden)
+		return
+	}
+
+	a.mu.RLock()
+	defer a.mu.RUnlock()
+
+	w.Header().Set("Content-Type", "application/json")
+	enc := json.NewEncoder(w)
+	if err := enc.Encode(a.db); err != nil {
+		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
+	}
 }
 
 // handleEntriesGet serves the entries editing page.

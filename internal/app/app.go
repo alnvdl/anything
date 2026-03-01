@@ -266,6 +266,7 @@ func New(params Params) (*App, error) {
 	a.mux.HandleFunc("GET /entries", a.handleEntriesGet)
 	a.mux.HandleFunc("POST /entries", a.handleEntriesPost)
 	a.mux.HandleFunc("GET /manifest.json", a.handleManifest)
+	a.mux.HandleFunc("GET /export.json", a.handleExport)
 	a.mux.HandleFunc("GET /status", a.handleStatus)
 
 	return a, nil
