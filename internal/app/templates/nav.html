@@ -1,5 +1,5 @@
 {{define "nav"}}
-<h1 class="header"><img src="/static/icon.svg" class="logo" /> {{.Title}}<small>{{if .Period}} (for {{.Period}} on {{.Weekday}}){{else if .Person}} ({{.Person}}'s votes){{end}}</small></h1>
+<h1 class="header"><img src="/static/logo.svg" class="logo" /> {{.Title}}<small>{{if .Period}} (for {{.Period}} on {{.Weekday}}){{else if .Person}} ({{.Person}}'s votes){{end}}</small></h1>
 <nav>
     <a href="/?token={{.Token}}">Vote</a> |
     <a href="/entries?token={{.Token}}">Edit</a> |

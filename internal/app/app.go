@@ -155,7 +155,7 @@ type App struct {
 	mux          *http.ServeMux
 	voteTmpl     *template.Template
 	tallyTmpl    *template.Template
-	entriesTmpl  *template.Template
+	editTmpl     *template.Template
 	manifestTmpl *text_template.Template
 }
 
@@ -219,13 +219,13 @@ func New(params Params) (*App, error) {
 		return nil, fmt.Errorf("parsing tally templates: %w", err)
 	}
 
-	a.entriesTmpl, err = template.New("").Funcs(tmplFuncs).ParseFS(templateFS,
+	a.editTmpl, err = template.New("").Funcs(tmplFuncs).ParseFS(templateFS,
 		"templates/layout.html",
 		"templates/nav.html",
-		"templates/entries.html",
+		"templates/edit.html",
 	)
 	if err != nil {
-		return nil, fmt.Errorf("parsing entries templates: %w", err)
+		return nil, fmt.Errorf("parsing edit templates: %w", err)
 	}
 
 	a.manifestTmpl, err = text_template.New("").ParseFS(templateFS,

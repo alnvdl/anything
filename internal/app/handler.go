@@ -189,7 +189,7 @@ func (a *App) handleEntriesGet(w http.ResponseWriter, r *http.Request) {
 	}
 
 	w.Header().Set("Content-Type", "text/html; charset=utf-8")
-	if err := a.entriesTmpl.ExecuteTemplate(w, "layout", data); err != nil {
+	if err := a.editTmpl.ExecuteTemplate(w, "layout", data); err != nil {
 		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
 	}
 }

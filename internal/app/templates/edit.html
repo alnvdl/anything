@@ -8,6 +8,7 @@
             <input type="text" class="group-name" value="{{$g.Name}}" />
             <button type="button" class="blue move-group-up">↑</button>
             <button type="button" class="blue move-group-down">↓</button>
+            <button type="button" class="blue add-entry">Add entry</button>
             <button type="button" class="red remove-group">Remove</button>
         </div>
         {{range $ei, $e := $g.Entries}}
@@ -42,7 +43,6 @@
             </table>
         </div>
         {{end}}
-        <button type="button" class="blue add-entry">Add entry</button>
         <hr />
     </div>
     {{end}}
@@ -106,8 +106,8 @@
             '<button type="button" class="blue move-group-up">↑</button>' +
             '<button type="button" class="blue move-group-down">↓</button>' +
             '<button type="button" class="red remove-group">Remove</button>' +
-            "</div>" +
             '<button type="button" class="blue add-entry">Add entry</button>' +
+            "</div>" +
             '<hr />' +
             "</div>";
     }
@@ -116,7 +116,8 @@
         // Event delegation for add/remove buttons.
         document.addEventListener("click", function(e) {
             if (e.target.classList.contains("add-entry")) {
-                e.target.insertAdjacentHTML("beforebegin", createEntryHTML());
+                var header = e.target.closest(".edit-group-header");
+                header.insertAdjacentHTML("afterend", createEntryHTML());
             }
             if (e.target.classList.contains("remove-entry")) {
                 if (confirm("Remove this entry?")) {
