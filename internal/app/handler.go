@@ -155,7 +155,7 @@ func (a *App) handleManifest(w http.ResponseWriter, r *http.Request) {
 	token := r.URL.Query().Get("token")
 	data := struct{ Token string }{Token: token}
 
-	w.Header().Set("Content-Type", "application/json")
+	w.Header().Set("Content-Type", "application/json; charset=utf-8")
 	if err := a.manifestTmpl.ExecuteTemplate(w, "manifest.json", data); err != nil {
 		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
 	}

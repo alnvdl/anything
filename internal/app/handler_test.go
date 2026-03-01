@@ -623,8 +623,8 @@ func TestHandleManifest(t *testing.T) {
 			}
 
 			ct := w.Header().Get("Content-Type")
-			if ct != "application/json" {
-				t.Errorf("Content-Type = %q, want %q", ct, "application/json")
+			if ct != "application/json; charset=utf-8" {
+				t.Errorf("Content-Type = %q, want %q", ct, "application/json; charset=utf-8")
 			}
 
 			var manifest map[string]any
@@ -682,8 +682,8 @@ func TestHandleExport(t *testing.T) {
 			}
 
 			ct := w.Header().Get("Content-Type")
-			if ct != "application/json" {
-				t.Errorf("Content-Type = %q, want %q", ct, "application/json")
+			if ct != "application/json; charset=utf-8" {
+				t.Errorf("Content-Type = %q, want %q", ct, "application/json; charset=utf-8")
 			}
 
 			var export struct {
