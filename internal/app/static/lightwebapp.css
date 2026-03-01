@@ -101,7 +101,7 @@ input[type="color"] {
     &.green {
         background: var(--lwa-green);
         color: color-mix(in hsl, var(--lwa-green), black 65%);
-        border: 1px solid color-mix(in hsl, var(--lwa-green), black 20%);
+        border: 1px solid color-mix(in hsl, var(--lwa-green), black 40%);
 
         &:hover {
             background-color: color-mix(in hsl, var(--lwa-green), black 8%);

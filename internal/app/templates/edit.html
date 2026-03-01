@@ -8,8 +8,8 @@
             <input type="text" class="group-name" value="{{$g.Name}}" />
             <button type="button" class="blue move-group-up">↑</button>
             <button type="button" class="blue move-group-down">↓</button>
-            <button type="button" class="blue add-entry">Add entry</button>
-            <button type="button" class="red remove-group">Remove</button>
+            <button type="button" class="green add-entry">+</button>
+            <button type="button" class="red remove-group">×</button>
         </div>
         {{range $ei, $e := $g.Entries}}
         <div class="edit-entry">
@@ -25,7 +25,7 @@
                     <input type="radio" class="entry-cost" name="_cost_{{$gi}}_{{$ei}}" id="_cost_{{$gi}}_{{$ei}}_4" value="4" {{if eq $e.Cost 4}}checked{{end}} />
                     <label for="_cost_{{$gi}}_{{$ei}}_4">$$$$</label>
                 </fieldset>
-                <button type="button" class="red remove-entry">Remove</button>
+                <button type="button" class="red remove-entry">×</button>
             </div>
             <table class="edit-schedule-table">
                 <tr>
@@ -93,7 +93,7 @@
             '<input type="radio" class="entry-cost" name="' + name + '" id="' + name + '_4" value="4" />' +
             '<label for="' + name + '_4">$$$$</label>' +
             "</fieldset>" +
-            '<button type="button" class="red remove-entry">Remove</button>' +
+            '<button type="button" class="red remove-entry">×</button>' +
             "</div>" +
             createScheduleHTML() +
             "</div>";
@@ -105,8 +105,8 @@
             '<input type="text" class="group-name" value="" placeholder="Group name" />' +
             '<button type="button" class="blue move-group-up">↑</button>' +
             '<button type="button" class="blue move-group-down">↓</button>' +
-            '<button type="button" class="red remove-group">Remove</button>' +
-            '<button type="button" class="blue add-entry">Add entry</button>' +
+            '<button type="button" class="green add-entry">+</button>' +
+            '<button type="button" class="red remove-group">×</button>' +
             "</div>" +
             '<hr />' +
             "</div>";
