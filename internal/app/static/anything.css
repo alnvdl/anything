@@ -127,9 +127,10 @@ button[type="submit"] {
     font-size: calc(var(--lwa-font-size) * 1.3);
     font-weight: 700;
     margin-left: auto;
+    margin-right: auto;
     margin-top: 32px;
     position: sticky;
-    width: 188px;
+    width: 40%;
     z-index: 100;
 }
 
