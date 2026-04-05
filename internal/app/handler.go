@@ -2,6 +2,8 @@ package app
 
 import (
 	"encoding/json"
+	"fmt"
+	"log/slog"
 	"net/http"
 	"strconv"
 	"strings"
@@ -275,7 +277,32 @@ func (a *App) handleEntriesPost(w http.ResponseWriter, r *http.Request) {
 	http.Redirect(w, r, "/?token="+token, http.StatusSeeOther)
 }
 
+// loggingResponseWriter is a wrapper around http.ResponseWriter that stores
+// the status code written to the response for logging.
+type loggingResponseWriter struct {
+	http.ResponseWriter
+	status int
+}
+
+func (w *loggingResponseWriter) WriteHeader(status int) {
+	w.status = status
+	w.ResponseWriter.WriteHeader(status)
+}
+
 // ServeHTTP implements http.Handler.
 func (a *App) ServeHTTP(w http.ResponseWriter, r *http.Request) {
-	a.mux.ServeHTTP(w, r)
+	slog.Info("request",
+		slog.String("method", r.Method),
+		slog.String("path", r.URL.Path),
+		slog.String("remote_addr", r.RemoteAddr),
+		slog.String("user_agent", r.UserAgent()))
+	lw := &loggingResponseWriter{ResponseWriter: w, status: http.StatusOK}
+	a.mux.ServeHTTP(lw, r)
+	slog.Info("response",
+		slog.String("method", r.Method),
+		slog.String("path", r.URL.Path),
+		slog.String("remote_addr", r.RemoteAddr),
+		slog.String("user_agent", r.UserAgent()),
+		slog.String("status", fmt.Sprintf("%d", lw.status)),
+	)
 }
