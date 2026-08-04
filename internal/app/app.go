@@ -98,10 +98,10 @@ type Params struct {
 	Timezone *time.Location
 	Periods  Periods
 
-	// AutoSaveParams is the configuration for auto-save. If FilePath is
-	// empty, auto-save will be disabled and votes will only be kept in
-	// memory. The LoaderSaver field will be set to the created App, so any
-	// value set by the caller will be ignored.
+	// AutoSaveParams is the configuration for auto-save. If FilePath is empty,
+	// auto-save will be disabled and votes will only be kept in memory.
+	// The LoaderSaver field will be set to the created App, so any value set
+	// by the caller will be ignored.
 	AutoSaveParams autosave.Params
 }
 
@@ -294,8 +294,8 @@ func (a *App) Load(r io.Reader) error {
 	var data db
 	err := dec.Decode(&data)
 	if errors.Is(err, io.EOF) || errors.Is(err, io.ErrUnexpectedEOF) {
-		// Ignoring a corrupted or empty file is intentional: we prefer to
-		// lose all data than prevent the application from starting.
+		// Ignoring a corrupted or empty file is intentional: we prefer to lose
+		// all data than prevent the application from starting.
 		return nil
 	} else if err != nil {
 		return fmt.Errorf("cannot deserialize data: %w", err)
@@ -331,8 +331,8 @@ func (a *App) Close() {
 	}
 }
 
-// updateVotes saves votes for a person, cleaning invalid entries and vote values.
-// Form keys are expected in "Group|Entry" format.
+// updateVotes saves votes for a person, cleaning invalid entries and vote
+// values. Form keys are expected in "Group|Entry" format.
 func (a *App) updateVotes(person string, votes map[string]string) {
 	defer a.delayAutoSave()
 	a.mu.Lock()
@@ -590,8 +590,8 @@ func weekdayForShort(short string) (time.Weekday, bool) {
 	return 0, false
 }
 
-// sortGroupNames sorts group names in place: groups present in groupOrder come
-// first (in the order specified), followed by remaining groups sorted
+// sortGroupNames sorts group names in place: groups present in groupOrder
+// come first (in the order specified), followed by remaining groups sorted
 // alphabetically.
 func sortGroupNames(names []string, groupOrder []string) {
 	orderIndex := make(map[string]int, len(groupOrder))
