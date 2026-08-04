@@ -276,8 +276,7 @@ func TestVotePageData(t *testing.T) {
 		t.Errorf("second group = %q, want Uptown", groups[1].Name)
 	}
 
-	// Downtown entries should be sorted alphabetically: Burger Joint, Pizza
-	// Place.
+	// Downtown entries should be sorted alphabetically: Burger Joint, Pizza Place.
 	if len(groups[0].Entries) != 2 {
 		t.Fatalf("Downtown should have 2 entries, got %d", len(groups[0].Entries))
 	}
@@ -436,15 +435,16 @@ func TestTallyData(t *testing.T) {
 	// Bob votes.
 	a.UpdateVotes("bob", map[string]string{
 		"Downtown|Pizza Place":  "yes",        // 2.
-		"Downtown|Burger Joint": "strong-yes", // 3. Sushi Bar: no vote = yes
-		// (2). Taco Stand: no vote =
-		// yes (2).
+		"Downtown|Burger Joint": "strong-yes", // 3.
+		// Sushi Bar: no vote = yes (2).
+		// Taco Stand: no vote = yes (2).
 	})
 
-	// Tally for Monday lunch (n_people=2). Pizza Place: (3+2)*(2+1) - (2*2)
-	// = 15 - 4 = 11, open. Burger Joint: (1+3)*(2+1) - (1*2) = 12 - 2 = 10,
-	// open. Sushi Bar: (0+2)*(2+1) - (4*2) = 6 - 8 = -2, closed (only dinner
-	// on mon). Taco Stand: (2+2)*(2+1) - (1*2) = 12 - 2 = 10, open.
+	// Tally for Monday lunch (n_people=2).
+	// Pizza Place: (3+2)*(2+1) - (2*2) = 15 - 4 = 11, open.
+	// Burger Joint: (1+3)*(2+1) - (1*2) = 12 - 2 = 10, open.
+	// Sushi Bar: (0+2)*(2+1) - (4*2) = 6 - 8 = -2, closed (only dinner on mon).
+	// Taco Stand: (2+2)*(2+1) - (1*2) = 12 - 2 = 10, open.
 
 	groups := a.TallyData(time.Monday, "lunch")
 
@@ -542,16 +542,16 @@ func TestTallyDataSortingTiebreakers(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	// No votes = all default to yes (2). n_people=1. All entries have score:
-	// 2*(1+1) - cost*1. B Place: 4-2=2, A Place: 4-2=2, C Place: 4-1=3.
+	// No votes = all default to yes (2). n_people=1.
+	// All entries have score: 2*(1+1) - cost*1.
+	// B Place: 4-2=2, A Place: 4-2=2, C Place: 4-1=3.
 	groups := a.TallyData(time.Monday, "lunch")
 
 	if len(groups) != 1 || len(groups[0].Entries) != 3 {
 		t.Fatalf("expected 1 group with 3 entries")
 	}
 
-	// C Place (score 3) first, then A Place (score 2, cost 2, name "A"),
-	// then B Place (score 2, cost 2, name "B").
+	// C Place (score 3) first, then A Place (score 2, cost 2, name "A"), then B Place (score 2, cost 2, name "B").
 	if groups[0].Entries[0].Name != "C Place" {
 		t.Errorf("entry[0] = %q, want C Place", groups[0].Entries[0].Name)
 	}
@@ -620,8 +620,8 @@ func TestTallyDataDefaultVotes(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	// No votes submitted. All 3 people default to yes (2). n_people=3. Score =
-	// (2+2+2)*(3+1) - (1*3) = 24 - 3 = 21.
+	// No votes submitted. All 3 people default to yes (2). n_people=3.
+	// Score = (2+2+2)*(3+1) - (1*3) = 24 - 3 = 21.
 	groups := a.TallyData(time.Monday, "lunch")
 
 	if groups[0].Entries[0].Score != 21 {
@@ -783,8 +783,7 @@ func TestPeriodTallyWeekdayWithGaps(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	// In a gap, we can't determine the current period, so we return the same
-	// day.
+	// In a gap, we can't determine the current period, so we return the same day.
 	a.SetNowFunc(func() time.Time {
 		return time.Date(2024, 1, 1, 14, 0, 0, 0, time.UTC) // Monday 14:00.
 	})
@@ -902,8 +901,7 @@ func TestSaveLoadRoundTrip(t *testing.T) {
 		t.Fatalf("Save() error: %v", err)
 	}
 
-	// Load into a fresh app with no config entries (simulates file having
-	// entries).
+	// Load into a fresh app with no config entries (simulates file having entries).
 	a2, err := app.New(app.Params{
 		People:   testPeople(),
 		Timezone: time.UTC,

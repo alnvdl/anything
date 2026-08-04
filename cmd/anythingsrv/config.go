@@ -48,8 +48,8 @@ func HealthCheckInterval() time.Duration {
 	return defaultHealthCheckInterval
 }
 
-// Port reads and validates the PORT environment variable. If not set,
-// it defaults to 8080.
+// Port reads and validates the PORT environment variable. If not set, it
+// defaults to 8080.
 func Port() (int, error) {
 	s := os.Getenv("PORT")
 	if s == "" {
@@ -132,8 +132,8 @@ func Timezone() (*time.Location, error) {
 	return loc, nil
 }
 
-// Periods reads and validates the PERIODS environment variable. It validates
-// that period hours do not overlap.
+// Periods reads and validates the PERIODS environment variable.
+// It validates that period hours do not overlap.
 func Periods() (app.Periods, error) {
 	s := os.Getenv("PERIODS")
 	if s == "" {
