@@ -37,8 +37,6 @@ The following environment variables can be used to configure the application:
    entry has a `cost` and an `open` schedule mapping weekdays to periods.
    This is only used for an initial import if the database has no entries;
    entries are persisted in the database afterwards.
-- `HEALTH_CHECK_INTERVAL`: The interval for checking the health of the
-   service. Default is `3m`.
 - `PEOPLE`: A JSON object mapping person names to their tokens
    (e.g., `{"alice":"alice","bob":"bob"}`). To generate good tokens, you can
    run `openssl rand 15 | basenc --base64url`. This variable is required.
