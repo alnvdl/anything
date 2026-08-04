@@ -12,7 +12,8 @@ import (
 	"github.com/alnvdl/anything/internal/version"
 )
 
-// authenticate extracts the token from the request and resolves it to a person.
+// authenticate extracts the token from the request and resolves it to a
+// person.
 func (a *App) authenticate(r *http.Request) (string, bool) {
 	token := r.URL.Query().Get("token")
 	return a.personForToken(token)
