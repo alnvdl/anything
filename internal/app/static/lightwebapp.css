@@ -16,6 +16,7 @@
     --lwa-blue: #C5D5F5;
     --lwa-green: #E5F5D5;
 
+    --lwa-focus-ring: 0 0 0 2px rgba(100, 100, 100, 0.2);
     --lwa-border-radius: 0.25rem;
 }
 
@@ -50,12 +51,6 @@ select {
     font-family: inherit;
     transition: all 0.2s ease;
     color: var(--lwa-font-color);
-
-    &:focus {
-        outline: none;
-        border-color: color-mix(in hsl, var(--lwa-font-color), white 50%);
-        box-shadow: 0 0 0 2px rgba(100, 100, 100, 0.2);
-    }
 }
 
 input,
@@ -135,31 +130,46 @@ div:not(:has(> :not(button)))>button {
     border-left: 0;
 }
 
-div:not(:has(> :not(button)))>button:first-of-type {
+div:not(:has(> :not(button)))>button:nth-child(1 of :not([hidden])) {
     border: 1px solid color-mix(in hsl, var(--lwa-button-color), black 20%);
 }
 
 div:has(> button):not(:has(> :not(button))) {
     display: inline-flex;
+    position: relative;
     vertical-align: middle;
     box-shadow: 1px 1px 1px rgba(0, 0, 0, 0.2);
     border-radius: var(--lwa-border-radius);
 }
 
 div:has(> button):not(:has(> :not(button)))>button {
+    position: relative;
     border-radius: 0;
 }
 
-div:has(> button):not(:has(> :not(button)))>button:first-of-type {
+div:has(> button):not(:has(> :not(button)))>button:focus-visible {
+    z-index: 1;
+}
+
+div:has(> button):not(:has(> :not(button)))>button:nth-child(1 of :not([hidden])) {
     border-radius: var(--lwa-border-radius) 0 0 var(--lwa-border-radius);
 }
 
-div:has(> button):not(:has(> :not(button)))>button:last-of-type {
+div:has(> button):not(:has(> :not(button)))>button:nth-last-child(1 of :not([hidden])) {
     border-radius: 0 var(--lwa-border-radius) var(--lwa-border-radius) 0;
 }
 
-div:has(> button):not(:has(> :not(button)))>button:only-of-type {
+div:has(> button):not(:has(> :not(button)))>button:nth-child(1 of :not([hidden])):nth-last-child(1 of :not([hidden])) {
     border-radius: var(--lwa-border-radius);
+}
+
+input:focus-visible,
+textarea:focus-visible,
+button:focus-visible,
+select:focus-visible {
+    outline: none;
+    border-color: color-mix(in hsl, var(--lwa-font-color), white 50%);
+    box-shadow: var(--lwa-focus-ring);
 }
 
 /* Customizations on top of Reboot */
