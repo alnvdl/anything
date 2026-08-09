@@ -15,6 +15,8 @@
     --lwa-red: #F5D5D5;
     --lwa-blue: #C5D5F5;
     --lwa-green: #E5F5D5;
+
+    --lwa-border-radius: 0.25rem;
 }
 
 /* main.lightwebapp container */
@@ -54,6 +56,14 @@ select {
         border-color: color-mix(in hsl, var(--lwa-font-color), white 50%);
         box-shadow: 0 0 0 2px rgba(100, 100, 100, 0.2);
     }
+}
+
+input,
+textarea,
+button,
+select,
+label {
+    border-radius: var(--lwa-border-radius);
 }
 
 
@@ -133,6 +143,23 @@ div:has(> button):not(:has(> :not(button))) {
     display: inline-flex;
     vertical-align: middle;
     box-shadow: 1px 1px 1px rgba(0, 0, 0, 0.2);
+    border-radius: var(--lwa-border-radius);
+}
+
+div:has(> button):not(:has(> :not(button)))>button {
+    border-radius: 0;
+}
+
+div:has(> button):not(:has(> :not(button)))>button:first-of-type {
+    border-radius: var(--lwa-border-radius) 0 0 var(--lwa-border-radius);
+}
+
+div:has(> button):not(:has(> :not(button)))>button:last-of-type {
+    border-radius: 0 var(--lwa-border-radius) var(--lwa-border-radius) 0;
+}
+
+div:has(> button):not(:has(> :not(button)))>button:only-of-type {
+    border-radius: var(--lwa-border-radius);
 }
 
 /* Customizations on top of Reboot */
