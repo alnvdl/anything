@@ -19,7 +19,7 @@ times on the fork-and-knife icon in the nav bar to export all data.
 </table>
 
 ## Running
-To run Anything locally, just install Go 1.25+ and run `make dev`.
+To run Anything locally, just install Go 1.27+ and run `make dev`.
 
 Then access the application at http://localhost:8080/?token=alice.
 
