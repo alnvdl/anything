@@ -23,6 +23,11 @@ func (a *App) VotePageData(person string) []GroupData {
 	return a.entriesData(person)
 }
 
+// VoteData exposes voteData for testing.
+func (a *App) VoteData(person string, weekday time.Weekday, period string) []GroupData {
+	return a.voteData(person, weekday, period)
+}
+
 // TallyData exposes tallyData for testing.
 func (a *App) TallyData(weekday time.Weekday, period string) []GroupData {
 	return a.tallyData(weekday, period)

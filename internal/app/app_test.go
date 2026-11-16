@@ -304,7 +304,6 @@ func TestVotePageData(t *testing.T) {
 
 func TestVotePageDataNoVotes(t *testing.T) {
 	a := newTestApp(t)
-
 	groups := a.VotePageData("alice")
 
 	// All votes should be empty.
@@ -313,6 +312,45 @@ func TestVotePageDataNoVotes(t *testing.T) {
 			if e.CurrentVote != "" {
 				t.Errorf("entry %q has vote %q, want empty", e.Name, e.CurrentVote)
 			}
+		}
+	}
+}
+
+func TestVoteDataOpenEntriesFirstAlphabetically(t *testing.T) {
+	entries := []app.Entry{{
+		Name:  "Open Zulu",
+		Group: "Group",
+		Open:  map[string][]string{"mon": {"lunch"}},
+	}, {
+		Name:  "Closed Beta",
+		Group: "Group",
+		Open:  map[string][]string{"mon": {"dinner"}},
+	}, {
+		Name:  "Open Alpha",
+		Group: "Group",
+		Open:  map[string][]string{"mon": {"lunch"}},
+	}}
+	a := newTestApp(t, entries...)
+
+	groups := a.VoteData("alice", time.Monday, "lunch")
+	if len(groups) != 1 || len(groups[0].Entries) != 3 {
+		t.Fatalf("expected one group with three entries, got %+v", groups)
+	}
+
+	want := []struct {
+		name   string
+		closed bool
+	}{{
+		name: "Open Alpha",
+	}, {
+		name: "Open Zulu",
+	}, {
+		name:   "Closed Beta",
+		closed: true,
+	}}
+	for i, entry := range groups[0].Entries {
+		if entry.Name != want[i].name || entry.Closed != want[i].closed {
+			t.Errorf("entry[%d] = (%q, closed=%t), want (%q, closed=%t)", i, entry.Name, entry.Closed, want[i].name, want[i].closed)
 		}
 	}
 }

@@ -7,7 +7,7 @@
 {{end}}
 
 {{define "entry"}}
-    <div class="entry">
+    <div class="entry" {{if .Closed}} style="opacity: 0.5" {{end}}>
         <div>{{.Name}}</div>
         <fieldset class="radio-group">
             <input type="radio" class="vote" name="{{.Group}}|{{.Name}}" id="{{.Group}}|{{.Name}} strong-no" value="strong-no"{{if eq .CurrentVote "strong-no"}} checked{{end}} />

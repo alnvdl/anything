@@ -430,6 +430,32 @@ func (a *App) entriesData(person string) []groupData {
 	return result
 }
 
+// voteData returns grouped entries for the voting page, with open entries
+// sorted before closed entries.
+func (a *App) voteData(person string, weekday time.Weekday, period string) []groupData {
+	groups := a.entriesData(person)
+	weekdayShort := weekdays[weekday].Short
+
+	for i := range groups {
+		for j := range groups[i].Entries {
+			entry := &groups[i].Entries[j]
+			entry.Closed = !slices.Contains(entry.Open[weekdayShort], period)
+		}
+
+		slices.SortFunc(groups[i].Entries, func(a, b entryData) int {
+			if a.Closed != b.Closed {
+				if a.Closed {
+					return 1
+				}
+				return -1
+			}
+			return cmp.Compare(a.Name, b.Name)
+		})
+	}
+
+	return groups
+}
+
 // tallyData computes the tally for a given weekday and period.
 func (a *App) tallyData(weekday time.Weekday, period string) []groupData {
 	a.mu.RLock()

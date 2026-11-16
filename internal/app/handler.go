@@ -28,7 +28,8 @@ func (a *App) handleVote(w http.ResponseWriter, r *http.Request) {
 	}
 
 	token := r.URL.Query().Get("token")
-	groups := a.entriesData(person)
+	now := a.nowFunc().In(a.timezone)
+	groups := a.voteData(person, now.Weekday(), periodForHour(a.periods, now.Hour()))
 
 	data := pageData{
 		Title:   "Anything",
